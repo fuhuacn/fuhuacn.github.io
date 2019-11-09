@@ -5,6 +5,11 @@ categories: 机器视觉
 description: 中国邮政储蓄银行北京分行 — 大数据项目
 ---
 
+目录
+
+* TOC
+{:toc}
+
 中国邮政储蓄银行北京分行 — 大数据项目是为邮储银行北京分行定制化搭建的生产大数据分析、管理应用项目。该项目从立项到完成耗时接近一年，由于银行的安全级别特殊性，期间几个月连续每周至少一次前往邮储银行北京分行（玺萌大厦）。从项目的设计到项目的开发使用及维护，一直由我主导并推进完成。可以说这也是我研究生期间耗费精力最多的项目了。
 
 # 1. 项目需求
@@ -561,7 +566,7 @@ else:
 
 出错后或需要删除某张数据表使用的字段，删除 HIVE 中该数据表并清空日志。
 
-## 配置及使用
+### 配置及使用
 
 配置任务的迁移同样在大数据管理平台中，如下图：
 
@@ -570,3 +575,166 @@ else:
 用户可以新建任务并对任务配置。同时可以搜索查看任务配置信息。
 
 ![新建任务](/images/peojects/youchu/WX20191109-173753.png)
+
+日志查看：通过 SSH 到目标机，读取对应任务的日志文件。
+
+### 安全性
+
+Apache Ranger 是 Hadoop 中最有名的权限管理组件。此项目中最重要的 HIVE 权限管理就是 Ranger 完成的。
+
+但 HIVE 默认为不鉴权，开启鉴权后，最简单的鉴权方式为 ldap 。于是选取了一台虚拟机做 ldap 用户服务器，使用 ldap 作为用户管理体系完成全部的鉴权管理。
+
+## 虚拟化平台
+
+虚拟化平台使用 kvm 内核做虚拟机。虚拟机主要用于功能模块的安装和大数据实验平台的搭建。
+
+### 功能模块的安装
+
+即之前所提到的大数据管理平台中的组件等。由于组件较多，使用虚拟化技术分离环境比较方便。
+
+### 大数据实验平台
+
+这也是真正使用虚拟化技术的核心原因。
+
+跑 HIVE 分析任务时首先不可能在生产用大数据平台中进行，所以我们创立了数据实验室这个概念。
+
+数据实验室即一键搭建 Hadoop ，最开始的方案是使用 docker 搭建。这样方便快捷，配置简单。但是 docker 下是不好做 CPU 完全性能隔离的。试想如果一个用户进行了错误操作，导致 CPU 被跑满，这是完全不可接受的。所以最终放弃了 docker 。
+
+而虚拟化技术是可以完全做到性能的隔离，但是这一过程相对麻烦：
++ 创建 NameNode 的镜像， DataNode 的镜像。
++ 以之前两台虚拟机镜像作为模版，创建一个 1 台 NameNode ， 2 台 DataNode 的集群。
++ 登陆 NameNode 修改免密登陆配置，修改 hosts 信息，同时将 hosts 发送给两台 DataNode 。
+
+### 从大数据平台到数据实验室的迁移
+
+通过这一功能可以实现从生产化大数据平台到任意实验大数据平台的迁移，方便使用人员在各自环境中分析数据。
+
+**这一部分在大数据实验室中的 HIVE 表均为外部表，因为实际上使用的是拷贝 hdfs 文件，所以在删除表的时候，同时需要删除 hdfs 文件。**
+
+这部分其实实现过程与从“定制化 ETL 迁移工具”类似，区别在于：
+
++ 创建阶段，由从 Oracle 中读取源表信息，更改为从 HIVE 生产大数据平台中读取表信息（已保存在日志文件中），无需格式转换。
++ 不再区分 ODS 阶段和 DW 阶段，统一为 DISTCP 阶段。
++ 增加分区阶段。
++ 删除表的时候，同时需要删除 hdfs 文件。
+
+下面对重点部分进行讲解：
+
++ DISTCP阶段：
+  
+  由于是 HIVE 到 HIVE 的传输，其实最简单的办法便是直接拷贝 HDFS 文件，于是想到了使用 DISTCP （分布式拷贝，同样适用 MapReduce）传输。
+
+  对于 HIVE 来讲，分区是一个一个的文件夹，分桶是一个一个的文件，所以说完全拷贝结构或只拷贝传输分区文件夹的结构，便实现了 HIVE 数据表的传输。
+
+  ``` python
+  def distcp(job):
+      path = get_log_path(job)
+
+      dao.set_status(job.database, job.table, 'RUNNING')
+      logger.log.info('%s.%s distcp running', job.database, job.table)
+
+      hadoop_ip = configer.config['hadoop']['ip']
+      hadoop_port = configer.config['hadoop']['port']
+      lab_ip = configer.config['lab']['ip']
+      lab_port = configer.config['lab']['port']
+
+      parameter = ''
+      if job.partition and job.partition != 'ALL':
+          parameter += 'hdfs://' + hadoop_ip + ':' + hadoop_port
+          parameter += '/apps/hive/warehouse/' + job.src_database + '.db/' + job.src_table.lower() + '/' + job.partition + '/' + ' '
+          parameter += 'hdfs://' + lab_ip + ':' + lab_port
+          parameter += job.location + job.partition + '/' + ' '
+      else:
+          parameter += 'hdfs://' + hadoop_ip + ':' + hadoop_port
+          parameter += '/apps/hive/warehouse/' + job.src_database + '.db/' + job.src_table.lower() + '/' + ' '
+          parameter += 'hdfs://' + lab_ip + ':' + lab_port
+          parameter += job.location + ' '
+
+      p = subprocess.Popen('hadoop distcp -update -skipcrccheck ' + parameter + '> ' + path + 'distcp.log' + ' 2>&1', shell=True)
+      dao.set_distcp_pid(job.database, job.table, p.pid)
+  ```
+
++ 分区阶段：
+  
+  对导入后的 HIVE 数据表使用 ALTER 创建分区。
+
+  首先会登陆 HIVE 所在的机器中，对于追加一个分区的任务，可以只声明一个分区。
+
+  对于没有分区的任务可以跳过此部。
+
+  对于多个分区的任务，则需要通过 show partitions 操作获取全部分区并使用 for 循环执行全部的分区声明操作。
+
+  ``` python
+  def add_partition(job):
+    path = get_log_path(job)
+
+    if not job.partition:
+        dao.set_stage_and_status(job.database, job.table, '', 'FINISH')
+        dao.add_log(job.database, job.table, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
+        logger.log.info('%s.%s finish', job.database, job.table)
+        return
+
+    dao.set_status(job.database, job.table, 'RUNNING')
+    logger.log.info('%s.%s addp running', job.database, job.table)
+
+    sql = ''
+    if job.partition == 'ALL':
+        p = subprocess.Popen('ssh root@' + configer.config['hadoop']['ip'] + ' "hive -e \\\"SHOW PARTITIONS ' + job.src_database + '.' + job.src_table + ';\\\"" > ' + path + 'partitions.sql' + ' 2>&1', shell=True)
+        p.wait()
+        partitions = []
+        with open(path + 'partitions.sql', 'r', encoding='utf-8') as file:
+            for line in file:
+                if line.startswith('par_'):
+                    partitions.append(line[0:-1])
+        for partition in partitions:
+            sql += 'ALTER TABLE `' + job.database + '`.`' + job.table + '` ADD PARTITION (' + partition + ') LOCATION \'' + job.location + partition + '/\';\n'
+    else:
+        sql += 'ALTER TABLE `' + job.database + '`.`' + job.table + '` ADD PARTITION (' + job.partition + ') LOCATION \'' + job.location + job.partition + '/\';\n'
+
+    with open(path + 'addp.sql', 'w', encoding='utf-8') as file:
+        file.write(sql)
+
+    p = subprocess.Popen('hive -f ' + path + 'addp.sql ' + '> ' + path + 'addp.log' + ' 2>&1', shell=True)
+    dao.set_addp_pid(job.database, job.table, p.pid)
+    dao.set_addp_time(job.database, job.table, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
+  ```
+
+## 人脸识别高并发接口
+
+这一部分与大数据平台的关系并不大，邮储银行自己拥有自己的事件平台（貌似是 Rabbit Mq 改的），他们的人脸识别应用是第三方公司做的。我负责封装一个事件平台接口供人脸识别调用，通过调用我这个接口返回客户的个人信息。
+
+这部分听起来并不难，高并发也就是做一个线程池，当收到一个新时间时，扔到线程池里查询数据库，获取个人信息再扔回事件平台就 OK 了，但真正的坑点就是这个线程池！
+
+**邮储官方给的说明中提到，JAVA SDK 在多线程条件下无法使用。**
+
+这就很难受了，我亲自试了一下，当在线程池中发送回事件平台时，SDK 直接卡死。
+
+解决方案：
+
+对于这种大批量接口调用的，肯定不能但线程下进行啊，尤其查询 Oracle 这部操作并不快。
+
+之后选择了一种神奇的方案：Socket 进程池。
+
+这方面多多少少受了我[阿里中间件初赛](http://www.fuhuacn.top/2019/10/26/alimiddleware/)的影响，我将收到了事件也看作是一个 Gateway 的操作，查询和发送回事件平台看作是 Provider 操作。只不过 Gateway 和 Provider 均换成了最简单的 Socket 连接。
+
+这样就相当于下图：
+
+![进程池](/images/peojects/youchu/事件平台接口.png)
+
+这里以三个 Provider 代替了，实际部署上使用了 10 个 Provider 。
+
+同时在 Gateway 记录着每个 Provider 当前的任务处理信息（当选定一个 Provider 发送后，Gateway 会等待 Provider 结束并收集他的处理时间在关闭 Socket 连接）。之后通过参数计算得分（其实就比了一下任务数量），下次发送给得分最高的机器。这部分的公式都与比赛时类似：
+
+得分 = 100 - 当前剩余任务数量 - 任务延迟时间（毫秒）/5
+
+但其实最后算下来，就是挨个轮着发了，因为都部署在了同一台机器上，也没啥差别了。
+
+### 关于这部分使用 NIO ：
+
+其实在一切都开发接近结束时，又想到了用 NIO 解决这一问题，即线程池多线程查询到结果后，通过 NIO Socket 发送给服务器，服务器使用选择器管理多个 Channel 。据说比多线程效率还高。
+
+附一个 NIO Socket [链接](https://juejin.im/post/5b947ffa6fb9a05d2b6d9a68)，以后可以试试。
+
+# 4. 总结
+
+邮储项目持续了接近一年的时间，他也是我研究生两年时间的一个缩影。这个项目从大框架设计，到每个功能模块的拆解，再到到代码的研发都是我主导并参与（除了虚拟化底层部分是同组其他人制作）。其中的数据迁移部分更是耗时最多也调整部分最大的地方。整个项目虽然说叫大数据项目，但更多的其实还是开发项目（数据迁移的设计，大数据平台的监控与告警，人脸接口的设计），他让我更加熟悉了最主流的几个大数据工具（ Hadoop 、HIVE 、Kafka 、Storm 等），为后面的两个开发项目（公安部一所数据迁移项目，批流一体的自适应异常检测框架）打下了良好的基础。
