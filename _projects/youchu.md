@@ -70,6 +70,8 @@ description: 中国邮政储蓄银行北京分行 — 大数据项目
 
 ## 大数据平台管理平台
 
+JAVA Web 项目，基于 Spring Boot 开发。
+
 大数据平台管理平台提供生产用大数据平台的健康监控、日志管理、告警管理、数据管理和用户管理功能。首页界面如下：
 
 ![首页](/images/peojects/youchu/portal.png)
@@ -147,14 +149,11 @@ description: 中国邮政储蓄银行北京分行 — 大数据项目
 
 如前文所述，定制化 ETL 工具是基于 Sqoop 开发的，具体版本是 1.4.6 。
 
-迁移流程图如下：
-
-![ETL 任务](/images/peojects/youchu/ETL.png)
-
 ### 难点
 
++ 数据表多（ 2000 以上），数据量巨大（ 最高流水类接近百亿级）。
 + 需要保证数据格式对应。
-+ 迁移数据需保留分区和分桶。
++ 迁移数据需保留分区（可能会有动态分区，要求 oracle 分区可以对应 HIVE 分区，或按一定规则分区），支持 HIVE 中的分桶操作，提高效率。
 + 迁移数据需要同时保留中文 comments 。
 + 不仅要满足一次性迁移，还需可以在之后追加数据。
 + 追加周期区分粒度，可以按日/月方式进行。
@@ -163,7 +162,11 @@ description: 中国邮政储蓄银行北京分行 — 大数据项目
 
 ### 概述
 
-ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
+迁移流程图如下：
+
+![ETL 任务](/images/peojects/youchu/ETL.png)
+
+ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次，脚本启动后会读取各任务的当前信息，根据**阶段**和**状态**两个字段（后面详细解释）决定接下来的操作。
 
 在 MySQL 中记录了迁移任务的迁移信息，信息如下：
 
@@ -178,6 +181,7 @@ ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
   + 校验数量阶段：检验最终数量是否完成。
   + 追加阶段：数据表等待到达追加时间。
   + 追加检查阶段：数据表等待是否满足追加的条件。
+  + 删除阶段：将 HIVE 中数据表删除。
 + 状态：当前迁移所处状态，分为以下：
   + 等待中：当前阶段还没有开始，等待开始，当开始后状态切换为运行中。
   + 运行中：当前阶段正在运行，等待检查，当检查完毕后切换为下一阶段的等待中、错误或结束。
@@ -185,7 +189,10 @@ ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
   + 错误：当前任务出错或检查数量不符出错，需要人为查看原因。
   + 追加：检查是否达到追加时间。
 + 追加周期：追加的方式（日/月）。
-+ 追加种类：分区追加/条件追加/全部覆盖。
++ 追加种类：
+  + 条件追加：按某种特定的条件追加数据，比如两个表之间有相互关系时，必须表 1 满足条件后，表 2 再迁移。
+  + 分区追加：仅迁移新的分区的数据。
+  + 全量覆盖：把源表全部覆盖到 HIVE 的表中。
 + 上次任务进行时间。
 + 下次任务进行时间。
 + 分区字段。
@@ -207,6 +214,14 @@ ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
 + dw_time：dw 任务的开始时间。
 + dw_seconds：dw 任务的运行时间。
 
+*关于为什么区分 ODS 阶段 和 DW 阶段：*
+
+由于涉及到了动态分区， oracle 中的分区需与 hive 中的分区对应，甚至 oracle 中无分区，但导入到 hive 中需要有分区，比如按照时间字段 20180101 中的 201801 月来分区，这时候使用 sqoop 的分区（只可选定数据导入到某单个分区）便显得力不从心。**HIVE 中的分区是与字段名必须不同的，如何设定分区名称也需要交给用户选择。如果只填写了 partition 字段，则会按照填写字段名称增加“ _par ”作为分区名称。如果填写了 partition_select 字段，便是填写自定义函数，如 substring()，以这个字段将作为分区名称。**
+
+所以我将整个导入过程拆成了两部分：
++ ODS（ Operational Data Store ）：操作性数据导入，即中间表，从 Sqoop 全量导入 Oracle 中的数据到这张表。
++ DW（ Data Warehouse ）：数据仓库，即把中间表按分区导入到了最终的数据仓库中。
+
 接下来将分各阶段介绍迁移流程。
 
 ### 创建阶段
@@ -221,7 +236,7 @@ ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
 
 **为什么不实用 sqoop 的 –create-hive-table 参数：** 因为在邮储中仍然需要保留如 timestamp 之类的时间戳字段，如果使用自动创建，他可能会出现无法完全对应的字段。同时我们的迁移过程还需要保留中文注释。
 
-**HIVE 中文注释：** HIVE 的中文注释需要修改元数据库（ HIVE 的 MySQL ）的字符信息。
+**HIVE 中文 COMMENTS：** HIVE 的中文注释需要修改元数据库（ HIVE 的 MySQL ）的字符信息，否则从 Oracle 导过来会乱码。
 
 部分创建对应字段代码：
 
@@ -300,7 +315,7 @@ ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
 
   ``` python
   def create_dw(job, path, fields):
-      # 补充默认的分区分桶字段
+      # 如果排序了，必须补充默认的分区分桶字段
       if job.sort and not job.cluster:
           job.bucket = 1
           if job.partition:
@@ -336,4 +351,222 @@ ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
       return False
   ```
 
-当创建表完成并且检验通过后，进入下一阶段 —— ods。
+当创建表完成并且检验通过后，进入下一阶段 —— ODS 同时状态会被标记为等待中。
+
+### ODS
+
+即将全部源 Oracle 数据表导入到中间表的过程。
+
+ODS 任务会执行 Sqoop 脚本程序，并将日志写入到对应日志文件夹中，如下所示：
+
+  ``` python
+  def ods(job):
+      # 获取日志路径
+      path = get_log_path(job)
+      # 检查是否达到ods任务的并发数量，最大并发数为ORACLE_CONCURRENCY
+      if dao.get_ods_running_count() == ORACLE_CONCURRENCY:
+          return
+
+      dao.set_status(job.database, job.table, 'RUNNING')
+      log.info('%s.%s ods running', job.database, job.table)
+
+      # 如果追加类型不是overwrite并且还有追加要求时，需要选择特定的源数据去追加
+      if job.append and job.append != 'overwrite':
+          # 只追加一个分区
+          if job.append == 'partition':
+              query = '"SELECT * FROM ' + job.src_table + ' PARTITION(P' + job.latest + ') WHERE \$CONDITIONS"'
+          # 按条件追加
+          elif job.append == 'where':
+              query = '"' + check_condition.get_query(job) + ' and \$CONDITIONS"'
+          else:
+              dao.set_status(job.database, job.table, 'ERROR')
+              log.error('%s.%s append type not supported', job.database, job.table)
+              return
+      # 否则将是全量覆盖追加
+      else:
+          query = '"SELECT * FROM ' + job.src_table + ' WHERE \$CONDITIONS"'
+      # 提交sqoop任务
+      p = subprocess.Popen('sqoop import --hive-import' +
+                          ' --connect ' + 'jdbc:oracle:thin:@%s:%s/%s' % (
+                              job.src_host, job.src_port, job.src_service_names) +
+                          ' --username ' + job.src_username +
+                          ' --password ' + job.src_password +
+                          ' --query ' + query +
+                          ' --hive-database ods' +
+                          ' --hive-table ' + job.table +
+                          ' --target-dir ' + job.table +
+                          ' --delete-target-dir' +
+                          ' --null-string \'\\\\N\' --null-non-string \'\\\\N\'' +
+                          ' --hive-delims-replacement \'|_|\'' +
+                          ' --num-mappers 1 ' + job.parameter +
+                          ' > ' + path + 'ods.log' + ' 2>&1', shell=True)
+      dao.set_ods_pid(job.database, job.table, p.pid)
+  ```
+
+这里需要注意的是是否是属于追加任务，如果是追加任务，则只选择追加部分的数据内容，并且会根据追加的形式选择迁移的数据量，例如全量覆盖会选择全部数据而分区追加仅选择增加的分区的数据。
+
+当迁移开始后，该条任务的状态会被标记为运行中，之后程序读此任务时会首先读取日志中的 mapreduce.Job: Running job: 字段，记录 ODS 任务的 yarn job id 和开始时间。再之后的每次检查时，会执行 yarn application -status 命令检查当前任务状态。任务完成时证明 ODS 任务已经完成。接着可以进入下一阶段 DW 阶段并再次将状态标为等待中。
+
+### DW
+
+这一部的主要目的是对中间表的数据按分区形式导入到数据仓库中。
+
+这里先给出一个分区语言事例，可以跟之后代码中的 sql 比对一下：
+  ``` sql
+  SET hive.exec.dynamic.partition=true;  
+  SET hive.exec.dynamic.partition.mode=nonstrict; 
+  SET hive.exec.max.dynamic.partitions.pernode = 1000;
+  SET hive.exec.max.dynamic.partitions=1000;
+  
+  INSERT overwrite TABLE t_123_partitioned PARTITION (month,day) 
+  SELECT url,substr(day,1,6) AS month,day 
+  FROM t_123;
+  ```
+
+程序中代码如下：
+
+  ``` python
+  def dw(job):
+      path = get_log_path(job)
+
+      dao.set_status(job.database, job.table, 'RUNNING')
+      log.info('%s.%s dw running', job.database, job.table)
+
+      sql = ''
+      # 如果追加类型不是overwrite并且还有追加要求时，需要选择特定的源数据去追加
+      if job.append and job.append != 'overwrite':
+          sql += 'INSERT INTO TABLE `' + job.database + '`.`' + job.table + '` '
+      else:
+          sql += 'INSERT OVERWRITE TABLE `' + job.database + '`.`' + job.table + '` '
+      if job.partition:
+          sql += 'PARTITION(`par_' + job.partition + '`) '
+          if job.partition_select:
+              sql += 'SELECT *,' + job.partition_select + ' AS `par_' + job.partition + '` '
+          else:
+              sql += 'SELECT *,`' + job.partition + '` AS `par_' + job.partition + '` '
+      else:
+          sql += 'SELECT * '
+      sql += 'FROM `ods`.`' + job.table + '`;'
+
+      with open(path + 'dw.sql', 'w') as file:
+          file.write(sql)
+
+      # 提交hive任务，并写入指定日志文件中
+      p = subprocess.Popen('hive -f ' + path + 'dw.sql ' + '> ' + path + 'dw.log' + ' 2>&1', shell=True)
+      dao.set_dw_pid(job.database, job.table, p.pid)
+      dao.set_dw_time(job.database, job.table, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
+  ```
+
+这里的重点也是追加的形式，究竟是全量追加覆盖数据，还是按分区/条件追加追加数据。同时要注意分区名称的配置。
+
+同样开始 insert 的任务后，会把日志写入指定文件夹内，程序会一直检查日志的状态。在第一次读取日志时，通过 Executing on YARN cluster with App id 字段记录 YARN 的 job id 。在之后的检查中，仍然通过 yarn application -status 命令读取 yarn 任务状态，查看任务是否完成。当任务完成后，会将程序阶段标记为检查，状态标记为等待中。 
+
+### 检查阶段
+
+检查阶段主要是检查迁移数量和最终表中增加数量是否相等。
+
+分别在 Oracle 和 HIVE 中执行两次 SQL 语句。检查 Oracle 中的数量和 HIVE 中的数量是否一致。这里的麻烦点还是在于追加的条件判断。下面列出关键部分代码：
+
+``` python
+# 在 Oracle 中检查语句
+if job.append == 'partition':
+    query = 'SELECT COUNT(*) FROM ' + job.src_table + ' PARTITION(P' + job.latest + ')'
+elif job.append == 'where':
+    query = check_condition.get_query_count(job)
+else:
+    query = 'SELECT COUNT(*) FROM ' + job.src_table
+
+# 在 HIVE 中的检查语句
+if job.append == 'partition':
+    query = 'SELECT COUNT(*) FROM ' + job.database + '.' + job.table + ' WHERE par_' + job.partition + '=' + job.latest
+elif job.append == 'where':
+    query = check_condition.generate_count_hive_query(job)
+else:
+    query = 'SELECT COUNT(*) FROM ' + job.database + '.' + job.table
+```
+
+检查结束后，如果数量一致，需要删除 ODS 数据表，记着同时也要删除 ODS 日志。
+
+此阶段完成后，任务阶段切换为完成或追加，状态根据不同阶段为空或追加。
+
+### 追加
+
+任务完成后，可以配置为追加。追加分为按日追加或按月追加。
+
+由于所有追加任务必须在夜间进行，所有处于此阶段的任务判断只会在晚间启动。
+
+读取当前系统时间，与任务的下次运行时间比对，即可确定是否需要追加任务。当需要追加任务时，会将状态切换为等待中，即可等待追加检查。
+
+  ``` python
+  def append(job):
+      path = get_log_path(job)
+
+      if not job.append:
+          return
+      if not job.next:
+          return
+      # 判断是否到达追加的时间
+      if time.strptime(str(job.next), '%Y-%m-%d %H:%M:%S') > time.localtime():
+          return
+
+      # 判断追加的间隔，如果是按天追加，最新数据加一天，如果是按月追加，最新数据增加一个月
+      if job.append_period == 'D':
+          oneday = datetime.timedelta(days=1)
+          old_latest = datetime.datetime.strptime(str(job.latest), '%Y%m%d')
+          latest = (old_latest + oneday).strftime("%Y%m%d")
+          old_next = datetime.datetime.strptime(str(job.next), '%Y-%m-%d %H:%M:%S')
+          next = (old_next + oneday).strftime("%Y-%m-%d %H:%M:%S")
+
+      else:
+          year = int(job.latest[0:4])
+          month = int(job.latest[4:6])
+          month += 1
+          if month > 12:
+              year += 1
+              month -= 12
+          if month < 10:
+              month = '0' + str(month)
+          latest = '%s%s' % (year, month)
+
+          next = time.strptime(str(job.next), '%Y-%m-%d %H:%M:%S')
+          year = next.tm_year
+          month = next.tm_mon
+          month += 1
+          if month > 12:
+              year += 1
+              month -= 12
+          if month < 10:
+              month = '0' + str(month)
+          next = '%s-%s-%s %s:%s:%s' % (year, month, next.tm_mday, next.tm_hour, next.tm_min, next.tm_sec)
+
+      log.info('%s.%s will append %s', job.database, job.table, latest)
+      dao.set_append(job.database, job.table, latest, next)
+  ```
+
+当一个任务被设定为开始追加后，同时要设定他的下次运行日期为下一天/月，以备下次追加使用。
+
+### 追加检查
+
+可能在上面已经看见了，很多代码中出现了 check_condition 这个类，他的作用就是对于特殊配置了的表，起到特殊的选择和检查作用。
+
+例如在 Oracle 中一个表是否可以迁移取决于另一个标记表。只有当条件满足标记表中有此待迁移表记录时，才可以迁移此表。对于这种类型的迁移都会在 check_condition 中判断。 check_condition 中配置有特殊表的检查方法和迁移时的选择语句。
+
+在 check_condition 中配置的数据表，在开始任务前都会经过此部检查是否满足迁移条件。没有配置的表可以直接通过此部。
+
+当此部通过后，表的阶段和状态又会重新被标记为创建阶段和等待中，这样就可以再一次的开始追加迁移了。
+
+这部分代码涉及过多邮储数据表内容，不能公开。
+
+### 删除
+
+出错后或需要删除某张数据表使用的字段，删除 HIVE 中该数据表并清空日志。
+
+## 配置及使用
+
+配置任务的迁移同样在大数据管理平台中，如下图：
+
+![任务配置](/images/peojects/youchu/WX20191109-173521.png)
+
+用户可以新建任务并对任务配置。同时可以搜索查看任务配置信息。
+
+![新建任务](/images/peojects/youchu/WX20191109-173753.png)
