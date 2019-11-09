@@ -142,3 +142,198 @@ description: 中国邮政储蓄银行北京分行 — 大数据项目
 下图是管理平台的三个组件的 Kafka 消费示意图。
 
 ![管理平台](/images/peojects/youchu/邮储管理平台组件.png)
+
+## 定制化 ETL 迁移工具
+
+如前文所述，定制化 ETL 工具是基于 Sqoop 开发的，具体版本是 1.4.6 。
+
+迁移流程图如下：
+
+![ETL 任务](/images/peojects/youchu/ETL.png)
+
+### 难点
+
++ 需要保证数据格式对应。
++ 迁移数据需保留分区和分桶。
++ 迁移数据需要同时保留中文 comments 。
++ 不仅要满足一次性迁移，还需可以在之后追加数据。
++ 追加周期区分粒度，可以按日/月方式进行。
++ 追加方式分为三种：全部覆盖，追加分区，按某一字段值追加。
++ 所有追加任务尽可以在晚间进行。
+
+### 概述
+
+ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次。
+
+在 MySQL 中记录了迁移任务的迁移信息，信息如下：
+
++ 目标数据库：记录迁移到 HIVE 中的目标数据库名称。
++ 目标数据表：记录迁移到 HIVE 中的目标数据包名称。
++ 源数据库（用户信息）：从哪个 Oracle 用户下的表迁移。
++ 源数据表：Oracle 中数据表的名称。
++ 阶段：当前所处的迁移阶段，按顺序分为以下 6 种：
+  + 创建阶段：创建数据表。
+  + ODS迁移阶段：使用 Sqoop 迁移到 ODS 中间表。
+  + DW阶段：使用 HIVE insert 命令从中间表迁移到目的表。
+  + 校验数量阶段：检验最终数量是否完成。
+  + 追加阶段：数据表等待到达追加时间。
+  + 追加检查阶段：数据表等待是否满足追加的条件。
++ 状态：当前迁移所处状态，分为以下：
+  + 等待中：当前阶段还没有开始，等待开始，当开始后状态切换为运行中。
+  + 运行中：当前阶段正在运行，等待检查，当检查完毕后切换为下一阶段的等待中、错误或结束。
+  + 已完成：该任务已结束，并且目前没有配置追加。
+  + 错误：当前任务出错或检查数量不符出错，需要人为查看原因。
+  + 追加：检查是否达到追加时间。
++ 追加周期：追加的方式（日/月）。
++ 追加种类：分区追加/条件追加/全部覆盖。
++ 上次任务进行时间。
++ 下次任务进行时间。
++ 分区字段。
++ 分区名称选择方法：在原 Oracle 数据表库，有些表的分区名称很诡异例如时间是以（8位或6位）字符串方式记录，需要手动调整分区字段名称。
++ 分桶数量。
++ 分桶字段。
++ 排序字段。
++ 附加参数：对于部分原表含有特殊参数的如：BLOB ， ROWID 等，需要在 sqoop 中设置 --map-column-java 或 --map-column-hive 对应关系。
++ 创建时间。
++ ods_pid：通过 pid 检测 ods 任务是否完成。
++ ods_job：ods 对应的 yarn 中 job 的 id 。
++ ods 任务开始时间。
++ ods 任务迁移大小。
++ ods 任务迁移条数
++ ods 任务运行时间。
++ ods 任务速度。
++ dw_pid：dw 任务的进程号。
++ dw_job：dw 任务的 yarn 中 job 的 id 。
++ dw_time：dw 任务的开始时间。
++ dw_seconds：dw 任务的运行时间。
+
+接下来将分各阶段介绍迁移流程。
+
+### 创建阶段
+
+创建迁移的目的数据表。
+
+对于一个新任务，需要创建两个数据表：分别是 ODS 数据表和 DW 数据表。
+
+对于一个追加任务，只需要创建 ODS 数据表，因为追加任务证明已完成过此任务，有最终的数据表。
+
+创建数据表时首先需要确认源 Oracle 中各数据表的字段类型，并做字段对应。
+
+**为什么不实用 sqoop 的 –create-hive-table 参数：** 因为在邮储中仍然需要保留如 timestamp 之类的时间戳字段，如果使用自动创建，他可能会出现无法完全对应的字段。同时我们的迁移过程还需要保留中文注释。
+
+**HIVE 中文注释：** HIVE 的中文注释需要修改元数据库（ HIVE 的 MySQL ）的字符信息。
+
+部分创建对应字段代码：
+
+  ``` python
+  def get_fields(job, change_parameter):
+      fields = ''  # 创建ods和dw表的核心sql语句
+      map_column_java = ''  # Oracle转为非hive类型文件时需要添加的参数，在使用sqoop时，该参数能够改变数据表列的默认映射类型
+      map_column_hive = ''  # Oracle转为hive类型文件时需要添加的参数，在使用sqoop时，该参数能够改变数据表列的默认映射类型
+      # 在Oracle中，视图SYS.USER_TAB_COLS和SYS.USER_TAB_COLUMNS都保存了当前用户的表、视图和Clusters中的列信息
+      # 因此在根据任务类中的Oracle源数据库相关信息连接Oracle源数据库之后
+      # 可以通过检索这两个表，方便地获取到表的结构，用于创建所需的ods和dw表
+      oracle = cx_Oracle.connect(job.src_username, job.src_password,
+                                job.src_host + ':' + str(job.src_port) + '/' + job.src_service_names)
+      cursor = oracle.cursor()
+      cursor.execute(
+          "SELECT USER_TAB_COLUMNS.COLUMN_NAME, USER_TAB_COLUMNS.DATA_TYPE, USER_TAB_COLUMNS.DATA_LENGTH, USER_TAB_COLUMNS.DATA_PRECISION, USER_TAB_COLUMNS.DATA_SCALE ,USER_COL_COMMENTS.COMMENTS FROM USER_TAB_COLUMNS, USER_COL_COMMENTS WHERE USER_TAB_COLUMNS.TABLE_NAME='%s' AND USER_TAB_COLUMNS.TABLE_NAME = USER_COL_COMMENTS.TABLE_NAME AND USER_TAB_COLUMNS.COLUMN_NAME = USER_COL_COMMENTS.COLUMN_NAME ORDER BY USER_TAB_COLUMNS.COLUMN_ID" % job.src_table)
+      # 根据查找到的表项类型，构造创建表的sql语句
+      for row in cursor.fetchall():
+          # row[0]为列名
+          fields += '`' + row[0] + '` '
+          # row[1]为数据类型，由于导入前后数据类型表示方法不同，因此需要做相应转换
+          if row[1] == 'DATE':
+              fields += 'timestamp'
+          elif row[1] == 'NUMBER':
+              if str(row[3]) == 'None':
+                  if row[4] == 0:
+                      fields += 'decimal(38,0)'
+                  else:
+                      fields += 'double'
+              else:
+                  fields += 'decimal(' + str(row[3]) + ',' + str(row[4]) + ')'
+          elif row[1] == 'CHAR':
+              fields += 'varchar(' + str(row[2]) + ')'
+          elif row[1] == 'VARCHAR':
+              fields += 'varchar(' + str(row[2]) + ')'
+          elif row[1] == 'VARCHAR2':
+              fields += 'varchar(' + str(row[2]) + ')'
+          elif row[1] == 'CLOB':
+              fields += 'string'
+              map_column_java += row[0] + '=String,'
+          elif row[1] == 'BLOB':
+              fields += 'string'
+              map_column_hive += row[0] + '=string,'
+          elif row[1] == 'RAW':
+              fields += 'string'
+              map_column_hive += row[0] + '=string,'
+          elif row[1] == 'ROWID':
+              fields += 'string'
+              map_column_java += row[0] + '=String,'
+              map_column_hive += row[0] + '=string,'
+          elif row[1] == 'TIMESTAMP':
+              fields += 'timestamp'
+          else:
+              dao.set_status(job.database, job.table, 'ERROR')
+              log.error('%s.%s field type %s not supported', job.database, job.table, row[1])
+              return
+          if row[5]:
+              fields += ' COMMENT ' + '\'' + row[5].replace(';', '；') + '\''
+          fields += ',\n'
+      cursor.close()
+      oracle.close()
+      # 在使用sqoop时，需要--map-column-hive和--map-column-java参数改变数据表列的默认映射类型，因此将该参数写入当前任务表格中
+      parameter = ''
+      if map_column_java != '':
+          parameter += ' --map-column-java ' + map_column_java[:-1]
+      if map_column_hive != '':
+          parameter += ' --map-column-hive ' + map_column_hive[:-1]
+      if change_parameter and parameter != '':
+          dao.set_parameter(job.database, job.table, job.parameter + parameter)
+      return fields[:-2]
+  ```
+
+在创建完成数据表后，还需创建日志文件夹，该任务的所有日志都将保留在此文件夹中。该项目设计的日志文件夹是：/etl_log/${database_name}/${table_name}/
+
+再获得字段对应信息后，生成 create sql 文件，并使用 hive -f 命令执行文件，并将执行结果写入到对应文件夹的日志中，检查创建结果。下面给出创建 dw 数据表（所以包含了分区、分桶信息）的代码：
+
+  ``` python
+  def create_dw(job, path, fields):
+      # 补充默认的分区分桶字段
+      if job.sort and not job.cluster:
+          job.bucket = 1
+          if job.partition:
+              job.cluster = job.partition
+          else:
+              job.cluster = fields[1:fields[1:].index('`') + 1]  # 获取首列名
+      # 构造完整建表语句
+      sql = ''
+      sql += 'CREATE TABLE `' + job.database + '`.`' + job.table + '` (\n'
+      sql += fields + ')\n'
+      if job.partition:
+          sql += 'PARTITIONED BY (`par_' + job.partition + '` string)\n'
+      if job.cluster:
+          sql += 'CLUSTERED BY (`' + job.cluster + '`)\n'
+      if job.sort:
+          sql += 'SORTED BY (' + job.sort + ')\n'
+      if job.bucket:
+          sql += 'INTO ' + str(job.bucket) + ' BUCKETS\n'
+      sql += 'ROW FORMAT DELIMITED\nFIELDS TERMINATED BY \'\\u0001\'\nLINES TERMINATED BY \'\\n\'\n'
+      sql += 'STORED AS ORC\n'
+      sql += ';\n'
+      # 写入sql文件准备执行
+      with open(path + 'create_dw.sql', 'w') as file:
+          file.write(sql)
+      # 创建子进程执行建表语句，并等待子进程的完成
+      p = subprocess.Popen('hive -f ' + path + 'create_dw.sql' + ' > ' + path + 'create_dw.log' + ' 2>&1', shell=True)
+      p.wait()
+      # 检查建表后的日志文件，若存在‘OK’则表示建表成功，否则失败
+      with open(path + 'create_dw.log', 'r') as file:
+          for line in file:
+              if line == 'OK\n':
+                  return True
+      return False
+  ```
+
+当创建表完成并且检验通过后，进入下一阶段 —— ods。
