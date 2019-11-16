@@ -1,7 +1,7 @@
 ---
 layout: wiki
 title: 中国邮政储蓄银行北京分行 — 大数据项目
-categories: 机器视觉
+categories: 大数据
 description: 中国邮政储蓄银行北京分行 — 大数据项目
 ---
 
