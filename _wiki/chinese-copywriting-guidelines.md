@@ -90,7 +90,7 @@ Other languages:
 
 错误：
 
-> 刚刚买了一部 iPhone ，好开心！
+> 刚刚买了一部 iPhone，好开心！
 
 ### `-ms-text-autospace` to the rescue?
 

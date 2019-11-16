@@ -1,12 +1,12 @@
 ---
 layout: post
-title: Java 中 Queue ，List ， Stack 的常用操作
+title: Java 中 Queue，List，Stack 的常用操作
 categories: Java
-description: Java 中 Queue ，List ， Stack 的常用操作
+description: Java 中 Queue，List，Stack 的常用操作
 keywords: JAVA,List,操作
 ---
 
-刷题经常用到 Queue ，List ， Stack ，由于没有 IDE 总是搞混他们的常用操作，记录一下方便看。
+刷题经常用到 Queue，List，Stack，由于没有 IDE 总是搞混他们的常用操作，记录一下方便看。
 
 ## List Interface 继承 Collection 接口
 

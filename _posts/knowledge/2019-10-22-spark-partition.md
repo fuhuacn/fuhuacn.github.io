@@ -35,6 +35,6 @@ keywords: Spark,分区
 - 宽依赖：多个子RDD的分区依赖一个父RDD的分区。比如groupByKey都属于宽依赖。
 ![宽依赖和窄依赖](/images/posts/knowledge/spark-partition/wideandnarrow1.png)
 ![宽依赖和窄依赖2](/images/posts/knowledge/spark-partition/wideandnarrow2.png)
-- 宽依赖的划分器：之前提到的join操作，如果是协同划分的话，两个父RDD之间， 父RDD与子RDD之间能形成一致的分区安排。即同一个Key保证被映射到同一个分区，这样就是窄依赖。如果不是协同划分，就会形成宽依赖。Spark提供两种划分器，HashPartitioner (哈希分区划分器)，(RangePartitioner) 范围分区划分器. 需要注意的是分区划分器只存在于PairRDD中，普通非（K,V）类型的Partitioner为None。
+- 宽依赖的划分器：之前提到的join操作，如果是协同划分的话，两个父RDD之间，父RDD与子RDD之间能形成一致的分区安排。即同一个Key保证被映射到同一个分区，这样就是窄依赖。如果不是协同划分，就会形成宽依赖。Spark提供两种划分器，HashPartitioner (哈希分区划分器)，(RangePartitioner) 范围分区划分器. 需要注意的是分区划分器只存在于PairRDD中，普通非（K,V）类型的Partitioner为None。
 ![宽依赖和窄依赖](/images/posts/knowledge/spark-partition/20190108091331983.png)
 5表示groupByKey会有5个分区，以HashPartitioner划分为5个分区

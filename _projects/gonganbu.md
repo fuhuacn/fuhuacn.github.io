@@ -24,7 +24,7 @@ description: 公安部第一研究所身份信息大数据迁移项目
 有了之前的迁移设计经验呢，对之前的进行了一些变动：
 
 + 由于这次确定都是属于技术人员用，并且短期内只会迁移固定的一张表，所以并没有管理员界面。
-+ 迁移不再用 Sqoop 工具迁移，而是采用多个线程批量读取 Oracle 后将数据发送至 Kafka 。使用 Spark 做数据校验并将校验通过的数据返回 Kafka 后存储至 HIVE 。
++ 迁移不再用 Sqoop 工具迁移，而是采用多个线程批量读取 Oracle 后将数据发送至 Kafka。使用 Spark 做数据校验并将校验通过的数据返回 Kafka 后存储至 HIVE。
 + 接收校验后的数据存储至文件中，使用 HIVE 的 LOAD 命令加载文件至 HIVE 中。
 + 增加了离线分析及数据展示模块。
 
@@ -44,9 +44,9 @@ description: 公安部第一研究所身份信息大数据迁移项目
 
 由于涉及了多个线程同时数据库，必须保证线程间不出现重复读取，使用了一个加锁类专门存储目前读取到的最新 ROWNUM，当一个线程完成一批数据的读取后，再次读取时加锁读取并写入最新行数，防止出现重复读取。
 
-在读取完成后，所有线程同时写入一个 LinkedBlockingQueue 中，注意使用的是 offer() 方法添加元素，这样在 Queue 空间不足时可以等待。之后一个线程会一直对这个队列 poll() 元素，并将数据以 JSON 的 list 格式批量发送至 Kafka 的 topic 1 。
+在读取完成后，所有线程同时写入一个 LinkedBlockingQueue 中，注意使用的是 offer() 方法添加元素，这样在 Queue 空间不足时可以等待。之后一个线程会一直对这个队列 poll() 元素，并将数据以 JSON 的 list 格式批量发送至 Kafka 的 topic 1。
 
-**注意：** topic 1 和 topic 2 的分区个数均设定为 5 。与物理机数量（每台物理机上均安装 Kafka 和 Spark）相同。
+**注意：** topic 1 和 topic 2 的分区个数均设定为 5。与物理机数量（每台物理机上均安装 Kafka 和 Spark）相同。
 
 ## Spark 实时分析组件
 
@@ -54,7 +54,7 @@ Spark 作为 topic1 的消费者，实时消费发送来的身份证列表进行
 
 这部分逻辑比较简单，主要是使用 Spark Streaming 配置消费者，判断消费就可以了，但这里有两个小点需要注意：
 
-+ 对于身份证信息验证错误的数据，则需要保存至 MySQL 。如果每条数据都建立一次 jdbc 连接，则开销过大，速度很很慢。所以采用为每个分区建立一个 jdbc 连接解决这一问题。其实很简单，就是在调用 foreach 前调用一次 foreachParation 就可以了。
++ 对于身份证信息验证错误的数据，则需要保存至 MySQL。如果每条数据都建立一次 jdbc 连接，则开销过大，速度很很慢。所以采用为每个分区建立一个 jdbc 连接解决这一问题。其实很简单，就是在调用 foreach 前调用一次 foreachParation 就可以了。
 
     ``` scala
     out.foreachPartition(p=>{
@@ -66,11 +66,11 @@ Spark 作为 topic1 的消费者，实时消费发送来的身份证列表进行
             })
     ```
 
-+ 同理对于身份证信息验证正常数据发送回 Kafka ，不可能每次使用都建立一个 KafkaProducer 送回，而如果像上面 jdbc 每个分区建立一个 KafkaProducer 可能会出现两个分区在一台机器时，KafkaProducer 报错：KafkaConsumer is not safe for multi-threaded access。这时候就要使用一个巧方法。可以[参考](https://www.jianshu.com/p/7cada5beb199)）：
++ 同理对于身份证信息验证正常数据发送回 Kafka，不可能每次使用都建立一个 KafkaProducer 送回，而如果像上面 jdbc 每个分区建立一个 KafkaProducer 可能会出现两个分区在一台机器时，KafkaProducer 报错：KafkaConsumer is not safe for multi-threaded access。这时候就要使用一个巧方法。可以[参考](https://www.jianshu.com/p/7cada5beb199)）：
     
-    将 KafkaProducer 包装成一个可序列化的 class ，对 KafkaProducer 采用 lazy 处理。这样可以先将 KafkaProducer.class 分发至各 executor 中，当使用时创建 KafkaProducer 对象，每台机器一个 KafkaProducer 。
+    将 KafkaProducer 包装成一个可序列化的 class，对 KafkaProducer 采用 lazy 处理。这样可以先将 KafkaProducer.class 分发至各 executor 中，当使用时创建 KafkaProducer 对象，每台机器一个 KafkaProducer。
 
-    同样，每个 executor 内部也会维护一个自有的队列，以文本格式组合校验完成后的数据发送给 kafka 。
+    同样，每个 executor 内部也会维护一个自有的队列，以文本格式组合校验完成后的数据发送给 kafka。
 
 校验信息完成的身份证号会以 topic 2 发送回 kafka 等待处理。
 
