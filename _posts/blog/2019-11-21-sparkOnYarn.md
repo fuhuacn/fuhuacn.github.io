@@ -138,7 +138,7 @@ Caused by: java.lang.InterruptedException
 
 一直就报线程被打断了，一般来讲线程被打断都不是报这段代码的问题，而是别的地方出错误所以叫所有的代码停止。但是就是找不到出错点在哪儿，也完全没有日志。专门也去找了 spark2-history 内的记录也找不到。最后走投无路想到会不会是一直用 root 用户提交的原因（用 ambari 安装 root 用户没有什么权限，专门还把 hdfs 中创了 /user/root 文件夹并赋给了 root 用户权限）。改用 hdfs 用户提交后不再出现此问题。
 
-## 忘了 spark streaming 的 awaitTermination()
+## 问题五：忘了 spark streaming 的 awaitTermination()
 
 这个说来比较有意思，上面问题解决后，一直是跑完第一次离线运算后就全部结束了，这个也比较灵异，按理说离线运算是个死循环线程，但基本上跑完就 finish。
 
