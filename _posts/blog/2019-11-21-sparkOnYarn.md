@@ -148,6 +148,12 @@ Caused by: java.lang.InterruptedException
 
 ## 运行截图
 
-附张正常运行截图，回来在配一下 yarn 的 log4j 日志等级（spark standalone 的时候是这样，不知道 on yarn 是不是）就 ok 了。
+提交命令很简单：
+
+``` shell
+spark-submit --class com.free4lab.sparkonline.run.ApplicationRun  --master yarn --deploy-mode cluster --name ml --executor-memory 1g --executor-cores 1  --conf "spark.driver.extraClassPath=/hadoop/spark-ml/lib/*" --conf "spark.executor.extraClassPath=/hadoop/spark-ml/lib/*"  ml-online-1.0-SNAPSHOT.jar
+```
+
+附张正常运行截图，回来在重新配一下 spark 的 log4j 日志等级就 ok 了。
 
 ![运行](/images/posts/blog/sparkonyarn/zhencghang.png)
