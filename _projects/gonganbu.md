@@ -19,7 +19,7 @@ description: 公安部第一研究所身份信息大数据迁移项目
 
 ## 设计总览
 
-![概览](/images/peojects/gonganbu/公安部框架图.png)
+![概览](/images/projects/gonganbu/公安部框架图.png)
 
 有了之前的迁移设计经验呢，对之前的进行了一些变动：
 
@@ -147,7 +147,7 @@ public synchronized void loadFile(String topic) {
 
 使用 ECharts 对 HIVE 分析出的结果简单的绘表展示，麻烦在于字段数量比较多。结果类似于下图（数据都是假的）：
 
-![结果](/images/peojects/gonganbu/结果.png)
+![结果](/images/projects/gonganbu/结果.png)
 
 # 3. 实现成果
 

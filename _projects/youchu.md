@@ -34,7 +34,7 @@ description: 中国邮政储蓄银行北京分行 — 大数据平台
 
 框架图如下所示：
 
-![邮储架构](/images/peojects/youchu/邮储架构图.png)
+![邮储架构](/images/projects/youchu/邮储架构图.png)
 
 框架分为三部分：
 
@@ -79,7 +79,7 @@ JAVA Web 项目，基于 Spring Boot 开发。
 
 大数据平台管理平台提供生产用大数据平台的健康监控、日志管理、告警管理、数据管理和用户管理功能。首页界面如下：
 
-![首页](/images/peojects/youchu/portal.png)
+![首页](/images/projects/youchu/portal.png)
 
 ### JMX 监控
 
@@ -138,7 +138,7 @@ JAVA Web 项目，基于 Spring Boot 开发。
 
 同样使用 Storm 作为 Kafka 消费者完成。可以使用正则表达式等形式完成预警判断，如下图：
 
-![告警](/images/peojects/youchu/alarm.png)
+![告警](/images/projects/youchu/alarm.png)
 
 同时可以设定告警邮箱（在邮储内网环境是连接了邮储的短信通知平台），当超过阈值时发送告警信息。
 
@@ -148,7 +148,7 @@ JAVA Web 项目，基于 Spring Boot 开发。
 
 下图是管理平台的三个组件的 Kafka 消费示意图。
 
-![管理平台](/images/peojects/youchu/邮储管理平台组件.png)
+![管理平台](/images/projects/youchu/邮储管理平台组件.png)
 
 ## 定制化 ETL 迁移工具
 
@@ -169,7 +169,7 @@ JAVA Web 项目，基于 Spring Boot 开发。
 
 迁移流程图如下：
 
-![ETL 任务](/images/peojects/youchu/ETL.png)
+![ETL 任务](/images/projects/youchu/ETL.png)
 
 ETL 迁移脚本由 python3 编写，由 crontab 控制每分钟执行一次，脚本启动后会读取各任务的当前信息，根据**阶段**和**状态**两个字段（后面详细解释）决定接下来的操作。
 
@@ -570,11 +570,11 @@ else:
 
 配置任务的迁移同样在大数据管理平台中，如下图：
 
-![任务配置](/images/peojects/youchu/WX20191109-173521.png)
+![任务配置](/images/projects/youchu/WX20191109-173521.png)
 
 用户可以新建任务并对任务配置。同时可以搜索查看任务配置信息。
 
-![新建任务](/images/peojects/youchu/WX20191109-173753.png)
+![新建任务](/images/projects/youchu/WX20191109-173753.png)
 
 日志查看：通过 SSH 到目标机，读取对应任务的日志文件。
 
@@ -719,7 +719,7 @@ Apache Ranger 是 Hadoop 中最有名的权限管理组件。此项目中最重�
 
 这样就相当于下图：
 
-![进程池](/images/peojects/youchu/事件平台接口.png)
+![进程池](/images/projects/youchu/事件平台接口.png)
 
 这里以三个 Provider 代替了，实际部署上使用了 10 个 Provider。
 
