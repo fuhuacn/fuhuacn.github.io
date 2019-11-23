@@ -10,7 +10,7 @@ keywords: spark,yarn
 
 由于之前做过 Spark on yarn 的项目，本以为没有太大工作量，但没想到还是搞了一下午。
 
-我这边的要迁移的项目是：**项目：自适应异常检测**。
+我这边的要迁移的项目是：[**项目：自适应异常检测**](http://www.fuhuacn.top/projects/anomalyDetction/)。
 
 ## 问题一：程序中 maven 引入的 jar 包如何处理
 

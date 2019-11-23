@@ -10,7 +10,7 @@ description: 自适应异常检测平台
 * TOC
 {:toc}
 
-自适应异常检测平台不出意外将是我在研究生期间的最后一个项目，他的项目初衷是为中国石油塔河硫化塔做异常预警，进而为其他的化工用塔做异常检测预警。该平台的目的是打造简便、易用、易配置的自适应异常检测平台。
+自适应异常检测平台不出意外将是我在研究生期间的最后一个项目，他的项目初衷是为中石化塔河硫化塔做异常预警，进而为其他的化工用塔做异常检测预警。该平台的目的是打造简便、易用、易配置的自适应异常检测平台。
 
 # 1. 功能点
 
@@ -41,7 +41,7 @@ description: 自适应异常检测平台
   + LSTM：利用 LSTM 根据历史数据预测下一条数据。根据预测的准不准确定是否是异常。
   + AutoEncoder：一种压缩算法，检测新的数据是否可以根据历史数据的压缩解压算法压缩复原数据，检测是否是异常。
 
-# 技术架构
+# 3. 技术架构
 
 ## 概括架构
 
@@ -70,6 +70,12 @@ Dubbo 版本：2.7.1
 ## 管理架构模型
 
 ![管理架构模型](/images/projects/anomaly/app管理模型.png)
+
+## 训练方式
+
++ 基准预警：用于比较稳定的数据类型，仅训练一次之后不再离线训练，对于所有的实时异常检测都使用同样的训练模型。
++ 累计预警：训练全部的已有数据，随着数据的增多训练量一直增大。
++ 窗口预警：仅训练最近的配置数量的数据。这样当数据超过配置数量数据时，仅训练最新一段时间的数据作为模型。用于数据形态可能会变化的场景。
 
 ## Spark Streaming 实时预警
 
@@ -147,3 +153,258 @@ stream.map(p => {
 
 ## Spark SQL 离线分析
 
+为了方便管理，与实时分析在同一项目中，均适用 SpringBoot 管理，这样也能读取到内存中的应用配置信息。
+
+在读取应用时先要注意是否在 HDFS 中有离线训练数据，如果没有数据不进行训练。
+
+离线分析组件会定时扫描配置信息，并检查有无到达重新训练时间的应用。离线训练中传统模型使用 Spark MLlib 完成训练，对于机器学习的部分，采用 [Deeplearning4j](http://deeplearning4j.org) 完成。
+
+逻辑结构代码如下：
+
+``` java
+for (i <- 0 until apps.size()) {
+  val app = apps.get(i)
+  if (app.getNexttrain==null||app.getNexttrain.compareTo(Timestamp.valueOf(LocalDateTime.now())) < 0) {
+    logger.info(app + " 到达离线计算运行时间，开始离线计算")
+    var mse:Double = -1
+    try {
+      val datasetReadCsv = spark.read.format("csv").option("header", "false").load(Constants.FILE_PATH + app.getId + "data.csv")
+      val realCount = datasetReadCsv.columns.length
+      if (realCount == app.getColumnnumber) {
+        val runningApp = RunningTimeData.readAndWriteMap.get(app.getTopic)
+        if(runningApp!=null){
+          mse = RunningTimeData.readAndWriteMap.get(app.getTopic).batchPredict.predict(datasetReadCsv, app, spark)
+        }else{
+          logger.warn("应用：" + app + "，预测方法是" + app.getTrainModel + "，暂时无该离线预测模型。")
+        }
+        var next = Timestamp.valueOf(LocalDateTime.now().plusMinutes(app.getPeriod.longValue()))
+        if(app.getLasttrain!=null){
+          next = Timestamp.valueOf(app.getLasttrain.toLocalDateTime.plusMinutes(app.getPeriod.longValue()))
+        }
+        app.setMse(mse)
+        app.setNexttrain(next)
+        app.setLasttrain(Timestamp.valueOf(LocalDateTime.now()))
+        appOperate.save(app)
+      }else{
+        logger.error(app+"在离线训练中，列数量与设定数量不符，真实数量："+realCount)
+      }
+    } catch {
+      case e:AnalysisException => {
+        logger.warn(app + " 没有文件！路径为："+Constants.FILE_PATH + app.getId + "data.csv")
+      }
+      case e: Exception => {
+        e.printStackTrace()
+        logger.error(app + " 离线计算出错！")
+      }
+    }
+  }
+}
+logger.info("此次全部训练完成，app数量为："+apps.size())
+```
+
+注意：实时在线分析和离线分析给出的架构代码都运行在 Driver 端。
+
+## 启动类管理
+
+启动类利用了 CommandLineRunner，这样当 SpringBoot 启动后，自动开始运行 MySQL 配置加载，离线分析和在线分析部分代码。
+
+``` java
+@Controller
+public class Run implements CommandLineRunner {
+
+    @Autowired
+    Streaming streaming;
+    @Autowired
+    Batching batching;
+    @Autowired
+    AppUpdate appUpdate;
+
+    @Override
+    public void run(String... args) {
+        Runnable r = () -> {
+            batching.startBatching();
+        };
+        ScheduledExecutorService service=Executors.newScheduledThreadPool(2);
+        service.scheduleAtFixedRate(r,0,10,TimeUnit.MINUTES);
+        appUpdate.setStreaming(streaming);
+        service.scheduleAtFixedRate(appUpdate,0,1,TimeUnit.MINUTES);
+        streaming.startStreaming();
+    }
+}
+```
+
+## 线程并发部分
+
+由于离线分析和在线实时分析都需要写入/读取 HDFS 中的训练的模型，所以如果离线分析写入时，实时分析直接读取模型可能造成程序崩溃。
+
+在程序中为每个程序在内存中设计了 RunningApp 类，在类中包含了读取和加载模型的方法，并上锁以保证并发时不冲突。
+
+``` java
+public class RunningApp implements Serializable {
+    public Predict streamingPredict;
+    public com.free4lab.sparkml.batch.predict.Predict batchPredict;
+    private FileMethods fileMethods;
+    public LinkedList<CountEntity> count;
+
+    public RunningApp(Predict streamingPredict, com.free4lab.sparkml.batch.predict.Predict batchPredict, FileMethods fileMethods) {
+        this.streamingPredict = streamingPredict;
+        this.batchPredict = batchPredict;
+        this.fileMethods = fileMethods;
+        this.count = new LinkedList<>();
+    }
+
+    public synchronized Object loadModel(App app){
+        return fileMethods.loadModel(app);
+    }
+
+    public synchronized void saveModel(App app, MultiLayerNetwork m){
+        fileMethods.saveModel(app,m);
+    }
+
+    public synchronized void saveModel(App app, KMeansModel m){
+        fileMethods.saveModel(app,m);
+    }
+}
+```
+
+## 人工确认预警结果
+
+由于预警可能存在错误，例如：
+
++ 正常数据标为异常；
++ 异常数据没有完成预警。
+
+需要认为给系统干预，以增强系统的准确性。
+
+对于标注后正常/正常的数据，存储进 HDFS 等待离线分析模块再次训练。
+
+对于标注后异常/异常数据，留为记录。
+
+## 告警模块
+
+接收 Kafka 中实时训练平台的告警信息，读取应用的告警用户发送邮件。注意这里需要可以配置用户接受的告警频率，因为当出现告警的情况时，基本是不停的发送预警信息，可能发送邮件会过于频繁。
+
+## 添加预测方法
+
+扩展以下两个类就可以了。
+
+
+实时处理部分：
+
+``` java
+trait Predict {
+  protected val logger = LoggerFactory.getLogger(classOf[Predict])
+
+  def predict(df: DataFrame, app: App, spark: SparkSession, kafkaProducerBroad: Broadcast[KafkaSink[String, GenericRecord]]): Unit
+
+  def generateNoTrainSet(app: App): mutable.Set[Int] = {
+    CommonMethods.generateNoTrainSet(app)
+  }
+
+  def checkAlarm(errorData: Array[String], errorValue: Double, app: App, kafkaProducerBroad: Broadcast[KafkaSink[String, GenericRecord]]) = {
+    if (errorValue > app.getMse * app.getAlarmtimes) {
+      logger.error(app + "出现告警！训练规则是：" + app.getTrainModel + errorData.mkString(Constants.PATTERN))
+      val message = new GenericData.Record(new Schema.Parser().parse(asvc))
+      message.put("topic", Constants.ALARM_TOPIC)
+      message.put("createdTime", System.currentTimeMillis)
+      val map = new util.HashMap[String, String]
+      map.put("index", errorData(app.getOrderindex))
+      map.put("time", System.currentTimeMillis.toString)
+      map.put("errorValue", errorValue + "")
+      map.put("appName", app.getAppname)
+      map.put("errorData", errorData.mkString(","))
+      message.put("props", map)
+      kafkaProducerBroad.value.send(Constants.ALARM_TOPIC, message)
+    }
+  }
+}
+```
+
+离线分析部分：
+
+``` java
+trait Predict {
+  protected val logger = LoggerFactory.getLogger(classOf[Predict])
+
+  // 返回mse
+  def predict(df: DataFrame, app: App, spark: SparkSession):Double = {
+    try{
+      logger.info(app+" 开始训练！")
+      var datasetOr:DataFrame = null
+      app.getTrainmethod match {
+        case Constants.BASE => datasetOr = dealBase(df,app,spark)
+        case Constants.GROWTH => datasetOr= dealGrowth(df, app,spark)
+        case Constants.WINDOWS => datasetOr = dealWindows(df,app,spark)
+        case _ => {
+          logger.warn("应用：" + app + "，训练模式错误" + app.getTrainmethod)
+          return -1
+        }
+      }
+      datasetOr.show()
+      val dataSize = datasetOr.count()
+      if(dataSize<app.getMintrainnumber){
+        logger.error(app+"训练数量不足！dataSize:"+dataSize+",最小数量："+app.getMintrainnumber)
+        return -1
+      }
+      predicting(datasetOr,app,spark)
+    }catch {
+      case e:Exception => {
+        logger.error(app+"离线计算错误！")
+        e.printStackTrace()
+        -1
+      }
+    }
+  }
+  def predicting(df: DataFrame, app: App, spark: SparkSession):Double
+
+  def generateNoTrainSet(app: App): mutable.Set[Int] = {
+    CommonMethods.generateNoTrainSet(app)
+  }
+
+  def updateWsse(app: App,value:Double):Unit={
+    MysqlOperation.writeValue("app","mse","id = "+app.getId,value)
+    logger.info(app+"更新mse完成，更新的值是："+value+" id:"+app.getId)
+  }
+  def dealBase(df:DataFrame, app:App, spark:SparkSession):DataFrame
+  def dealGrowth(df:DataFrame,app:App, spark:SparkSession):DataFrame
+  def dealWindows(df:DataFrame, app:App, spark:SparkSession):DataFrame
+
+  def getActivation(activationString:String):Activation={
+    var act:Activation = null
+    activationString match {
+      case "relu" => act = Activation.RELU
+      case "sigmod" => act = Activation.SIGMOID
+      case "softmax" => act = Activation.SOFTMAX
+      case _ => act = Activation.IDENTITY
+    }
+    act
+  }
+
+  def getOptimization(optimizationString:String):OptimizationAlgorithm={
+    var opt:OptimizationAlgorithm = null
+    optimizationString match {
+      case "line_gradient_descent" => opt = OptimizationAlgorithm.LINE_GRADIENT_DESCENT
+      case _ => opt = OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT
+    }
+    opt
+  }
+
+  def getLossFunctions(lossFunctionsString:String):LossFunctions.LossFunction={
+    var loss:LossFunctions.LossFunction = null
+    lossFunctionsString match {
+      case "mcxent" => loss = LossFunctions.LossFunction.MCXENT
+      case "squared_loss" => loss = LossFunctions.LossFunction.SQUARED_LOSS
+      case _ => loss = LossFunctions.LossFunction.MSE
+    }
+    loss
+  }
+}
+```
+
+# 4. 预测结果
+
+对实际应用的中石化塔河项目中，24 小时运行，并成功完成一次预警。
+
+在实际应用时使用了 LSTM 和 KMeans 两种模型分别测试了预警效果，结果都可以完成实时预测（因为其实异常蛮明显的）。
+
+*项目还在不断改进。。。*
