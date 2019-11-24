@@ -370,3 +370,94 @@ void consumer() {
     }
 }
 ```
+
+### 4. 管程（Monitor）
+
+使用信号量机制实现的生产者消费者问题需要客户端代码做很多控制，而管程把控制的代码独立出来，不仅不容易出错，也使得客户端代码调用更容易。
+
+管程有一个重要特性：在一个时刻只能有一个进程使用管程。进程在无法继续执行的时候不能一直占用管程，否则其它进程永远不能使用管程。
+
+在并发编程领域，有两大核心问题：
+一个是互斥，即同一时刻只允许一个线程访问共享资源；
+另一个是同步，即线程之间如何通信、协作。这两大问题，管程都是能够解决的。
+
++ 我们先来看看管程是如何解决互斥问题的：
+
+  管程解决互斥问题的思路很简单，就是将共享变量及其对共享变量的操作统一封装起来。在下图中，管程 X 将共享变量 queue 这个队列和相关的操作入队 enq()、出队 deq() 都封装起来了；线程 A 和线程 B 如果想访问共享变量 queue，只能通过调用管程提供的 enq()、deq() 方法来实现；enq()、deq() 保证互斥性，只允许一个线程进入管程。
+
++ 管程如何解决线程间的同步问题:
+
+  + enq的时候while判断队列是否满了，如果满了，notFull.await()阻塞当前线程;
+  + enq如果没满，添加对象，并且用notEmpty.single()通知deque停止阻塞；
+  + deq可以顺利执行出队列的操作；
+  + deq的时候while判断队列是否为空，如果为空，notEmpty.await()阻塞当前线程;
+  + deq如果不为空，poll对象，并且用notFull.single()通知enq停止阻塞；
+  + enq可以顺利执行队列
+
+管程引入了 条件变量（也有可能是 Condition） 以及相关的操作：wait() 和 signal()/notify() 来实现同步操作。对条件变量执行 wait() 操作会导致调用进程阻塞，把管程让出来给另一个进程持有。signal() 操作用于唤醒被阻塞的进程。
+
+下面是 BlockingQueue 的 [JAVA 代码](https://liuhao163.github.io/JAVA中的管程/)：
+
+>关于 Condition 接口：  
+Condition是个接口，基本的方法就是await()和signal()方法；  
+Condition依赖于Lock接口，生成一个Condition的基本代码是lock.newCondition() 
+调用Condition的await()和signal() 方法，都必须在lock保护之内，就是说必须在lock.lock()和lock.unlock之间才可以使用  
+Conditon中的await()对应Object的wait()；  
+Condition中的signal()对应Object的notify()；  
+Condition中的signalAll()对应Object的notifyAll()。  
+*使用 Condition 相比于 notify 的优势是，可以对任何一个 lock 生成一个对应的 Condition，分解业务。而传统的 wait 和 notify 都是对 Object 的，一旦 notify 就全唤醒了。*
+
+``` java
+public class BlockQueue {
+    ReentrantLock lock = new ReentrantLock();
+
+    // 使用 condition 的优势就在这里，他可以对每个具体情况进行 await 和 signal
+    Condition notFull = lock.newCondition();
+    Condition notEmpty = lock.newCondition();
+
+    private Queue queue = new LinkedList();
+    private int queSize = 10;
+
+    public BlockQueue(int queSize) {
+        this.queSize = queSize;
+    }
+
+    public void enq(Object o) {
+        lock.lock();
+        try {
+            //如果为慢noFull阻塞线程
+            while (queue.size() == queSize) {
+                notFull.await();
+            }
+
+            queue.add(o);
+            //添加成功通知deq停止阻塞
+            notEmpty.signal();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public Object deque() {
+        lock.lock();
+        Object ret = null;
+        try {
+           //如果为空notEmpty阻塞线程
+            while (queue.size() == 0) {
+                notEmpty.await();
+            }
+            return queue.poll();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            //出队列成功通知队列未满可以入队列
+            notFull.signal();
+            lock.unlock();
+        }
+    }
+}
+```
+
