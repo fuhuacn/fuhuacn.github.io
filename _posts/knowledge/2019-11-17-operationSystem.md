@@ -301,6 +301,8 @@ QQ 和浏览器是两个进程，浏览器进程里面有很多线程，例如 H
 
 ## 进程同步
 
+本章代码[来源](https://my.oschina.net/hosee/blog/485121)。
+
 ### 1. 临界资源
 
 在操作系统中，进程是占有资源的最小单位（线程可以访问其所在进程内的所有资源，但线程本身并不占有资源或仅仅占有一点必须资源）。但对于某些资源来说，其在同一时间只能被一个进程所占用。这些一次只能被一个进程所占用的资源就是所谓的临界资源。典型的临界资源比如物理上的打印机，或是存在硬盘或内存中被多个进程所共享的一些变量和数据等（如果这类资源不被看成临界资源加以保护，那么很有可能造成丢数据的问题）。
@@ -335,39 +337,109 @@ down 和 up 操作需要被设计成原语，不可分割，通常的做法是�
 
 如果信号量的取值只能为 0 或者 1，那么就成为了 互斥量（Mutex） ，0 表示临界区已经加锁，1 表示临界区解锁。
 
+**java 中的信号量：**
+``` java
+Semaphore semaphore = new Semaphore(10); //设定为 10 的信号量，注意这个 10 并不是最大值，可以设第二个参数是否公平也就是是否先请求先拿到
+try{
+    semaphore.acquire(); //使用一个信号量，如果不够会阻塞，所以需要 InterruptedException
+    semaphore.acquire(8); //使用 8 个信号量，如果不够会阻塞，所以需要 InterruptedException
+}catch(InterruptedException e){
+    e.printStackTrace();
+}
+semaphore.release(); //释放一个信号量
+semaphore.release(20); // 释放 20 个信号量
+System.out.println(semaphore.availablePermits()); // 输出当前还剩的信号量
+```
+
 **使用信号量实现生产者-消费者问题：**
 
 本作业要求设计在同一个进程地址空间内执行的两个线程。生产者线程生产物品，然后将物品放置在一个空缓冲区中供消费者线程消费。消费者线程从缓冲区中获得物品，然后释放缓冲区。当生产者线程生产物品时，如果没有空缓冲区可用，那么生产者线程必须等待消费者线程释放出一个空缓冲区。当消费者线程消费物品时，如果没有满的缓冲区，那么消费者线程将被阻塞，直到新的物品被生产出来。
 
 这里生产者和消费者是既同步又互斥的关系，首先只有生产者生产了，消费着才能消费，这里是同步的关系。但他们对于临界区的访问又是互斥的关系。因此需要三个信号量 empty 和 full 用于同步缓冲区（对缓冲区剩余或满加减），而 mut 变量用于在访问缓冲区时是互斥的（0、1 控制消费者或生产者是否可以访问）。
 
-``` c
-#define N 100
-typedef int semaphore;
-semaphore mutex = 1;
-semaphore empty = N;
-semaphore full = 0;
+``` java
+import java.util.concurrent.Semaphore;
 
-void producer() {
-    while(TRUE) {
-        int item = produce_item();
-        down(&empty);
-        down(&mutex);
-        insert_item(item);
-        up(&mutex);
-        up(&full);
-    }
-}
+public class Hosee{
+	int count = 0;
+	final Semaphore notFull = new Semaphore(10);
+	final Semaphore notEmpty = new Semaphore(0);
+	final Semaphore mutex = new Semaphore(1);
 
-void consumer() {
-    while(TRUE) {
-        down(&full);
-        down(&mutex);
-        int item = remove_item();
-        consume_item(item);
-        up(&mutex);
-        up(&empty);
-    }
+	class Producer implements Runnable{
+		@Override
+		public void run(){
+			for (int i = 0; i < 10; i++){
+				try{
+					Thread.sleep(3000);
+				}
+				catch (Exception e){
+					e.printStackTrace();
+				}
+				try{
+					notFull.acquire();//顺序不能颠倒，否则会造成死锁。
+					mutex.acquire();
+					count++;
+					System.out.println(Thread.currentThread().getName()
+							+ "生产者生产，目前总共有" + count);
+				}
+				catch (Exception e){
+					e.printStackTrace();
+				}
+				finally{
+					mutex.release();
+					notEmpty.release();
+				}
+			}
+		}
+	}
+
+	class Consumer implements Runnable{
+		@Override
+		public void run(){
+			for (int i = 0; i < 10; i++)
+			{
+				try
+				{
+					Thread.sleep(3000);
+				}
+				catch (InterruptedException e1)
+				{
+					e1.printStackTrace();
+				}
+				try
+				{
+					notEmpty.acquire();//顺序不能颠倒，否则会造成死锁。
+					mutex.acquire();
+					count--;
+					System.out.println(Thread.currentThread().getName()
+							+ "消费者消费，目前总共有" + count);
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+				finally
+				{
+					mutex.release();
+					notFull.release();
+				}
+			}
+		}
+	}
+
+	public static void main(String[] args) throws Exception{
+		Hosee hosee = new Hosee();
+		new Thread(hosee.new Producer()).start();
+		new Thread(hosee.new Consumer()).start();
+		new Thread(hosee.new Producer()).start();
+		new Thread(hosee.new Consumer()).start();
+
+		new Thread(hosee.new Producer()).start();
+		new Thread(hosee.new Consumer()).start();
+		new Thread(hosee.new Producer()).start();
+		new Thread(hosee.new Consumer()).start();
+	}
 }
 ```
 
@@ -461,3 +533,588 @@ public class BlockQueue {
 }
 ```
 
+## 经典同步问题
+
+### 1. 生产者与消费者问题
+
++ synchronized 实现：生产和消费的过程都上上 synchronized 块，生产和消费的过程前判断一次当前数量是否为空/满即可。
+
+    ``` java
+    public class Hosee{
+        private static Integer count = 0;
+        private final Integer FULL = 10;
+        private static String LOCK = "LOCK";
+        class Producer implements Runnable{
+            @Override
+            public void run()
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    try
+                    {
+                        Thread.sleep(3000);
+                    }
+                    catch (Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                    synchronized (LOCK)
+                    {
+                        while (count == FULL)
+                        {
+                            try
+                            {
+                                LOCK.wait();
+                            }
+                            catch (Exception e)
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                        count++;
+                        System.out.println(Thread.currentThread().getName()
+                                + "生产者生产，目前总共有" + count);
+                        LOCK.notifyAll();
+                    }
+                }
+            }
+        }
+        class Consumer implements Runnable{
+            @Override
+            public void run()
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    try
+                    {
+                        Thread.sleep(3000);
+                    }
+                    catch (InterruptedException e1)
+                    {
+                        e1.printStackTrace();
+                    }
+                    synchronized (LOCK)
+                    {
+                        while (count == 0)
+                        {
+                            try
+                            {
+                                LOCK.wait();
+                            }
+                            catch (Exception e)
+                            {
+                                // TODO: handle exception
+                                e.printStackTrace();
+                            }
+                        }
+                        count--;
+                        System.out.println(Thread.currentThread().getName()
+                                + "消费者消费，目前总共有" + count);
+                        LOCK.notifyAll();
+                    }
+                }
+            }
+        }
+        public static void main(String[] args) throws Exception{
+            Hosee hosee = new Hosee();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+        }
+    }
+    ```
++ await() / signal()方法实现：使用 Condition，如果当生产/消费为空或满时，上对应的空/满 Condition。当有对应的写入/消费后，唤醒对应的 Condition。这样通过指定唤醒无需 synchronized。
+
+    ``` java
+    import java.util.concurrent.locks.Condition;
+    import java.util.concurrent.locks.Lock;
+    import java.util.concurrent.locks.ReentrantLock;
+
+    public class Hosee {
+        private static Integer count = 0;
+        private final Integer FULL = 10;
+        final Lock lock = new ReentrantLock();
+        final Condition NotFull = lock.newCondition();
+        final Condition NotEmpty = lock.newCondition();
+
+        class Producer implements Runnable {
+            @Override
+            public void run() {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    lock.lock();
+                    try {
+                        while (count == FULL) {
+                            try {
+                                NotFull.await();
+                            } catch (InterruptedException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+                        }
+                        count++;
+                        System.out.println(Thread.currentThread().getName()
+                                + "生产者生产，目前总共有" + count);
+                        NotEmpty.signal();
+                    } finally {
+                        lock.unlock();
+                    }
+
+                }
+            }
+        }
+
+        class Consumer implements Runnable {
+
+            @Override
+            public void run() {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                    lock.lock();
+                    try {
+                        while (count == 0) {
+                            try {
+                                NotEmpty.await();
+                            } catch (Exception e) {
+                                // TODO: handle exception
+                                e.printStackTrace();
+                            }
+                        }
+                        count--;
+                        System.out.println(Thread.currentThread().getName()
+                                + "消费者消费，目前总共有" + count);
+                        NotFull.signal();
+                    } finally {
+                        lock.unlock();
+                    }
+
+                }
+
+            }
+
+        }
+
+        public static void main(String[] args) throws Exception {
+            Hosee hosee = new Hosee();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+        }
+
+    }
+    ```
+
++ BlockingQueue阻塞队列方法：BlockingQueue 是 JDK5.0 的新增内容，它是一个已经在内部实现了同步的队列，实现方式采用的是我们第 2 种 await()/signal() 方法。它可以在生成对象时指定容量大小。它用于阻塞操作的是 put() 和 take() 方法。
+
+    ``` java
+    import java.util.concurrent.ArrayBlockingQueue;
+    import java.util.concurrent.BlockingQueue;
+
+    public class Hosee {
+        private static Integer count = 0;
+        final BlockingQueue<Integer> bq = new ArrayBlockingQueue<Integer>(10);
+        class Producer implements Runnable {
+            @Override
+            public void run() {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        bq.put(1);
+                        count++;
+                        System.out.println(Thread.currentThread().getName()
+                                + "生产者生产，目前总共有" + count);
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        class Consumer implements Runnable {
+            @Override
+            public void run() {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                    try {
+                        bq.take();
+                        count--;
+                        System.out.println(Thread.currentThread().getName()
+                                + "消费者消费，目前总共有" + count);
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+        }
+        public static void main(String[] args) throws Exception {
+            Hosee hosee = new Hosee();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+            new Thread(hosee.new Producer()).start();
+            new Thread(hosee.new Consumer()).start();
+        }
+    }
+    ```
+
+### 2. 读者 - 写者问题
+
+
+允许多个进程同时对数据进行读操作，但是不允许读和写以及写和写操作同时发生。
+
++ 使用 Java 的读写锁：
+
+    ``` java
+    class Queue3 {
+        private Object data = null;// 共享数据，只能有一个线程能写该数据，但可以有多个线程同时读该数据。
+        private ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();// 该类继承 ReadWriteLock 接口
+
+        public void get() {
+            rwl.readLock().lock();// 上读锁，其他线程只能读不能写
+            System.out.println(Thread.currentThread().getName()
+                    + " be ready to read data!");
+            try {
+                Thread.sleep((long) (Math.random() * 1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName()
+                    + "have read data :" + data);
+            rwl.readLock().unlock(); // 释放读锁，最好放在finnaly里面
+        }
+
+        public void put(Object data) {
+            rwl.writeLock().lock();// 上写锁，不允许其他线程读也不允许写
+            System.out.println(Thread.currentThread().getName()
+                    + " be ready to write data!");
+            try {
+                Thread.sleep((long) (Math.random() * 1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            this.data = data;
+            System.out.println(Thread.currentThread().getName()
+                    + " have write data: " + data);
+            rwl.writeLock().unlock();// 释放写锁
+        }
+    }
+    ```
+
++ Semaphore信号量：当读的时候判断一次有没有在读的，如果有在读的（证明没有写的）无需获取信号量，否则获取一次信号量。写入的时候必须获取信号量。
+
+``` java
+class Queue3
+{
+	private Object data = null;// 共享数据，只能有一个线程能写该数据，但可以有多个线程同时读该数据。
+	private Semaphore wmutex = new Semaphore(1);
+	private Semaphore rmutex = new Semaphore(2);// 只有两个能同时读
+	private int count = 0;
+
+	public void get(){
+		try
+		{
+			rmutex.acquire();
+			if (count == 0)
+				wmutex.acquire();// 当第一读进程欲读数据库时，阻止写进程写
+			count++;
+			System.out.println(Thread.currentThread().getName()
+					+ " be ready to read data!");
+			try
+			{
+				Thread.sleep((long) (Math.random() * 1000));
+			}
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+			System.out.println(Thread.currentThread().getName()
+					+ "have read data :" + data);
+			count--;
+			if (count == 0)
+				wmutex.release();
+			rmutex.release();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void put(Object data){
+		try
+		{
+			wmutex.acquire();
+			System.out.println(Thread.currentThread().getName()
+					+ " be ready to write data!");
+			try
+			{
+				Thread.sleep((long) (Math.random() * 1000));
+			}
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+			this.data = data;
+			System.out.println(Thread.currentThread().getName()
+					+ " have write data: " + data);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			wmutex.release();
+		}
+	}
+}
+```
+
+### 3. 哲学家就餐问题
+
+五个哲学家围着一张圆桌，每个哲学家面前放着食物。哲学家的生活有两种交替活动：吃饭以及思考。当一个哲学家吃饭时，需要先拿起自己左右两边的两根筷子，并且一次只能拿起一根筷子。
+
+考虑到如果所有哲学家同时拿起左手边的筷子，那么就没有人拿起右手边的筷子，造成死锁。
+
+![哲学家就餐](/images/posts/knowledge/operationSystem/哲学家就餐.jpeg)
+
+如上图，只有 5 只筷子，首先每只筷子都是临界资源，当一个筷子被拿后，另一个人不能拿。并且是一个同步问题，当一个哲学家拿了左边的筷子后必须拿他右边的筷子。
+
+[代码参考](https://blog.csdn.net/gao23191879/article/details/75168867)
+
+先给出一个可能为死锁的例子，在这个例子中有可能所有的哲学家都只拿到一只筷子，就会死锁了。
+
+``` java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+//哲学家吃饭问题
+public class ETTest {
+    //创建大小为5的信号量数组，模拟5根筷子
+    static Semaphore[] arry=new Semaphore[5];
+    public static void main(String[] args) {
+        //创建一个5个线程的线程池
+        ExecutorService es=Executors.newFixedThreadPool(5);
+        //初始化信号量
+        for(int i=0;i<5;i++){
+            arry[i]=new Semaphore(1,true);
+        }
+        //创建5个哲学家 但这样有可能会产生死锁问题
+        for(int i=0;i<5;i++){
+            es.execute(new ActionRunnable(i));
+        }
+    }
+    //第i+1号哲学家的活动过程
+    static class ActionRunnable implements Runnable{
+        private int i=0;
+        ActionRunnable(int i){
+            this.i=i;
+        }
+        @Override
+        public void run() {
+            while(!Thread.interrupted()){
+                try {
+                    arry[i].acquire();
+                    //请求右边的筷子
+                    arry[(i+1)%5].acquire();
+                    //吃饭
+                    System.out.println("我是哲学家"+(i+1)+"号我在吃饭");
+                    //释放左手的筷子
+                    arry[i].release();
+                    //释放右手的筷子
+                    arry[(i+1)%5].release();
+                     //哲学家开始思考
+                    System.out.println("我是哲学家"+(i+1)+"号我吃饱了我要开始思考了");
+                    //通知cpu 将调度权让给其他哲学家线程
+                    Thread.yield(); //让步一下
+                    //思考1秒
+                    //把休眠关闭，造成死锁的概率就会增加 
+                    //Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
+
++ 解法一：每次最多四个人拿筷子，这样至少有一个人能吃上
+
+    ``` java
+    import java.util.concurrent.ExecutorService;
+    import java.util.concurrent.Executors;
+    import java.util.concurrent.Semaphore;
+    //哲学家吃饭问题
+    public class ETTest2 {
+        //创建大小为5的信号量数组，模拟5根筷子
+        static Semaphore[] arry=new Semaphore[5];
+        //定义一个值为4的信号量，代表最多只能有四个哲学家拿起左边的筷子
+        static  Semaphore leftCount=new Semaphore(4,true);
+        public static void main(String[] args) {
+            //创建一个5个线程的线程池
+            ExecutorService es=Executors.newFixedThreadPool(5);
+            //初始化信号量
+            for(int i=0;i<5;i++){
+                arry[i]=new Semaphore(1,true);
+            }
+            //创建5个哲学家 但这样有可能会产生死锁问题
+            for(int i=0;i<5;i++){
+                es.execute(new ActionRunnable(i));
+            }
+        }
+        //第i+1号哲学家的活动过程
+        static class ActionRunnable implements Runnable{
+            private int i=0;
+            ActionRunnable(int i){
+                this.i=i;
+            }
+
+            @Override
+            public void run() {
+                while(!Thread.interrupted()){
+                    try {
+                        //看拿起左边筷子的线程数是否已满,可以，则能拿起左边筷子的线程数减一，不能则等待
+                        leftCount.acquire();
+                        arry[i].acquire();
+                        //请求右边的筷子
+                        arry[(i+1)%5].acquire();
+                        //吃饭
+                        System.out.println("我是哲学家"+(i+1)+"号我在吃饭");
+                        //释放左手的筷子
+                        arry[i].release();
+                        //能拿起左边筷子的线程数量加一
+                        leftCount.release();
+                        //释放右手的筷子
+                        arry[(i+1)%5].release();
+                        //哲学家开始思考
+                        System.out.println("我是哲学家"+(i+1)+"号我吃饱了我要开始思考了");
+                        //通知cpu 将调度权让给其他哲学家线程
+                        Thread.yield();
+                        //思考1秒
+                        //把休眠关闭，造成死锁的概率就会增加 
+                        //Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+    ```
+
++ 解法二：奇数号的哲学家先拿起左边的筷子，在拿起右边的筷子。偶数号的哲学家先拿起右边的筷子，再拿起左边的筷子，则以就变成，只有1号和2号哲学家会同时竞争1号的筷子，3号和4四号的哲学家会同时竞争3号的筷子，即5位哲学家会先竞争奇数号的筷子，再去竞争偶数号的筷子，最后总会有一个哲学家可以进餐成功。
+
+``` java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+//哲学家进餐问题
+public class ETTest {
+    //创建大小为5的信号量数组，模拟5根筷子
+    static Semaphore[] arry=new Semaphore[5];
+    public static void main(String[] args) {
+        //创建一个5个线程的线程池
+        ExecutorService es=Executors.newFixedThreadPool(5);
+
+        //初始化信号量
+        for(int i=0;i<5;i++){
+            arry[i]=new Semaphore(1,true);
+        }
+        //创建5个哲学家 但这样有可能会产生死锁问题
+        for(int i=0;i<5;i++){
+            es.execute(new ActionRunnable(i));
+        }
+
+    }
+    //第i+1号哲学家的活动过程
+    static class ActionRunnable implements Runnable{
+        private int i=0;
+        ActionRunnable(int i){
+            this.i=i;
+        }
+
+        @Override
+        public void run() {
+            while(!Thread.interrupted()){
+                try {
+                    if((i+1)%2!=0){
+                    //奇数号哲学家
+                    //请求左边的筷子
+                    arry[i].acquire();
+                    //请求右边的筷子
+                    arry[(i+1)%5].acquire();
+                    }else{
+                    //偶数号哲学家
+                        //请求右边的筷子
+                        arry[(i+1)%5].acquire();
+                        //再请求左边的筷子
+                        arry[i].acquire();
+                    }
+                    //吃饭
+                    System.out.println("我是哲学家"+(i+1)+"号我在吃饭");
+                    if((i+1)%2!=0){
+                    //奇数号哲学家
+                    //释放左手的筷子
+                    arry[i].release();
+                    //释放右手的筷子
+                    arry[(i+1)%5].release();
+                    }else{
+                    //偶数号的哲学家
+                        arry[(i+1)%5].release();
+                        arry[i].release();
+                    }
+                     //哲学家开始思考
+                    System.out.println("我是哲学家"+(i+1)+"号我吃饱了我要开始思考了");
+                    //通知cpu 将调度权让给其他哲学家线程
+                    Thread.yield();
+                    //思考1秒
+                    //把休眠关闭，造成死锁的概率就会增加 
+                    //Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
+
+*TODO:// 哲学家问题需要重新检查是否正确。*
