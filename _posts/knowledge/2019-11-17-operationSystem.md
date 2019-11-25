@@ -1252,6 +1252,52 @@ FIFO 常用于客户-服务器应用程序中，FIFO 用作汇聚点，在客户
 
 多个进程可以将同一个文件映射到它们的地址空间从而实现共享内存。另外 XSI 共享内存不是使用文件，而是使用内存的匿名段。
 
+Java 中共享内存可以用 MappedByteBuffer（java.nio 中）实现。[参考](https://zhuanlan.zhihu.com/p/27698585)具体如下：
+
++ 写到内存：
+
+  ``` java
+  public class Main {
+      public static void main(String args[]){
+          RandomAccessFile f = null;
+          try {
+              f = new RandomAccessFile("C:/hinusDocs/hello.txt", "rw");
+              FileChannel fc = f.getChannel();
+              MappedByteBuffer buf = fc.map(FileChannel.MapMode.READ_WRITE, 0, 20);
+              // 只是在内存中写入
+              buf.put("how are you?".getBytes());
+
+              Thread.sleep(10000);
+
+              fc.close();
+              f.close();
+
+          } catch (Exception e) {
+              e.printStackTrace();
+          }
+      }
+  }
+  ```
+
++ 从内存中读出
+
+  ``` java
+  public class MapMemoryBuffer {
+      public static void main(String[] args) throws Exception {
+          RandomAccessFile f = new RandomAccessFile("C:/hinusDocs/hello.txt", "rw");
+          FileChannel fc = f.getChannel();
+          MappedByteBuffer buf = fc.map(FileChannel.MapMode.READ_WRITE, 0, fc.size());
+
+          while (buf.hasRemaining()) {
+              System.out.print((char)buf.get());
+          }
+          System.out.println();
+      }
+  }
+  ```
+
+原理是使用 mmap 系统调用（linux系统调封装）。
+
 ### 6. 套接字（Socket）
 
 与其它通信机制不同的是，它可用于不同机器间的进程通信。
