@@ -1,8 +1,8 @@
 ---
 layout: wiki
-title: 中国邮储银行北京分行 - 数据发现门户
+title: 中国邮政储蓄银行北京分行 - 数据发现门户
 categories: 数据发现
-description: 中国邮储银行北京分行 - 数据发现门户
+description: 中国邮政储蓄银行北京分行 - 数据发现门户
 keywords: ElasticSearch,数据发现
 ---
 
