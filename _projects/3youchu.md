@@ -1,8 +1,8 @@
 ---
 layout: wiki
-title: 中国邮政储蓄银行北京分行 — 大数据平台
+title: 中国邮政储蓄银行北京分行 - 大数据平台
 categories: 大数据
-description: 中国邮政储蓄银行北京分行 — 大数据平台
+description: 中国邮政储蓄银行北京分行 - 大数据平台
 ---
 
 目录
