@@ -297,6 +297,8 @@ keywords: AcWing 题目
 
     把数组想象成链表，这样找有无重复数字就转换成了找链表有没有环。这样就是一快一慢。但需要注意的是，如果数组中没有重复数字，需要记下个数，当走的步数超过了数组的长度就证明没有重复数字了。
 
+    第二种是分治法，对自然数 1-n 分治，如果有重复数字，也就是分治那一半的数字数量会大于一半。
+
 + 代码：
 
     ``` java
@@ -324,6 +326,31 @@ keywords: AcWing 题目
             int temp = nums[a];
             nums[a]=nums[b];
             nums[b] = temp;
+        }
+        //分治法，因为所有的数都在 1-n 之间，把数组长度从 1-n 分治，每次确定重复的数字是在 1-mid 还是 mid-n
+        public int duplicateInArray(int[] nums) {
+            int left = 1;
+            int right = nums.length;
+            for(int i:nums){
+                if(i<=0||i>nums.length) return -1;
+            }
+            while(left<right){
+                int mid = (left+right)/2;
+                int leftCount = fenzhi(nums,left,mid);
+                int rightCount = fenzhi(nums,mid+1,right);
+                if(leftCount>mid-left+1) right = mid;
+                else left = mid+1;
+            }
+            return left;
+        }
+        public int fenzhi(int[] nums,int begin,int end){
+            int count = 0;
+            for(int i:nums){
+                if(i>=begin && i<=end){
+                    count++;
+                }
+            }
+            return count;
         }
     }
     ```
