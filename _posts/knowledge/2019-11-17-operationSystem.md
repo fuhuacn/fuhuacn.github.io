@@ -1688,5 +1688,4 @@ Java 中共享内存可以用 MappedByteBuffer（java.nio 中）实现。[参考
   + 当 RAID 10 有一个硬盘受损，其余硬盘会继续运作。 RAID 01 只要有一个硬盘受损，同组 RAID 0 的所有硬盘都会停止运作，只剩下其他组的硬盘运作，可靠性较低。如果以六个硬盘建 RAID 01，镜射再用三个建 RAID 0，那么坏一个硬盘便会有三个硬盘脱机。因此，RAID 10 远较 RAID 01 常用，零售主板绝大部份支持 RAID 0/1/5/10，但不支持 RAID 01。
   + RAID 10 至少需要4块硬盘，且硬盘数量必须为偶数。
 
-# 5. 链接
-
+# 5. [链接](https://github.com/CyC2018/CS-Notes/blob/master/notes/计算机操作系统%20-%20链接.md)
