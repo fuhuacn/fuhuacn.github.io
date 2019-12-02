@@ -246,7 +246,56 @@ keywords: AcWing 题目
 
 + 解法：
 
-    采用交换策略，即数组都在 0 - n-1 内，从头开始把对应的值和对应的位置做交换，当发现值一样的时候就不交换也就证明此时冲突了。其实这种思想也可以想象成链表，对应的值是对应的链表位置，跳到对应的链表位置在找下一个链表的位置，撞上了即结束。
+    采用交换策略，即数组都在 0 - n-1 内，从头开始把对应的值和对应的位置做交换，当发现值一样的时候就不交换也就证明此时冲突了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int duplicateInArray(int[] nums) {
+            int res = -1;
+            int mid = 0;
+            for(int i=0;i<nums.length;i++){
+                if(nums[i]<0||nums[i]>=nums.length) return -1;
+                while(nums[i]!=i && nums[nums[i]]!=nums[i]){
+                    swap(nums,i,nums[i]);
+                }
+                if(nums[i]!=i){
+                    res = nums[i];
+                    mid = i;
+                    break;
+                }
+            }
+            for(int i = mid;i<nums.length;i++){
+                if(nums[i]<0||nums[i]>=nums.length) return -1;
+            }
+            return res;
+        }
+        public void swap(int[] nums, int a, int b){
+            int temp = nums[a];
+            nums[a]=nums[b];
+            nums[b] = temp;
+        }
+    }
+    ```
+
+## 14. 不修改数组找出重复的数字
+
++ 题目描述：
+
+    给定一个长度为 n+1 的数组nums，数组中所有的数均在 1∼n 的范围内，其中 n≥1。
+
+    请找出数组中任意一个重复的数，但不能修改输入的数组。
+
+    **样例：**
+
+    给定 nums = [2, 3, 5, 4, 3, 2, 6, 7]。
+
+    返回 2 或 3。
+
++ 解法：
+
+    把数组想象成链表，这样找有无重复数字就转换成了找链表有没有环。这样就是一快一慢。但需要注意的是，如果数组中没有重复数字，需要记下个数，当走的步数超过了数组的长度就证明没有重复数字了。
 
 + 代码：
 
