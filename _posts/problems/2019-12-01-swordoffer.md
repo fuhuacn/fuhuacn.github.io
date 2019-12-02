@@ -86,7 +86,7 @@ keywords: AcWing 题目
 
     样例输出：
 
-    > 7
+    > 8
 
 + 解法：
 
@@ -145,6 +145,136 @@ keywords: AcWing 题目
                 }
             }
             System.out.println(dp[vs.length][maxV]);
+        }
+    }
+    ```
+
+## 3. 完全背包问题
+
++ 题目描述：
+
+    有 N 件物品和一个容量是 V 的背包。每种物品都有无限件可用。
+
+    第 i 件物品的体积是 vi，价值是 wi。
+
+    求解将哪些物品装入背包，可使这些物品的总体积不超过背包容量，且总价值最大。
+    输出最大价值。
+
+    输入格式
+
+    第一行两个整数，N，V，用空格隔开，分别表示物品数量和背包容积。
+
+    接下来有 N 行，每行两个整数 vi,wi，用空格隔开，分别表示第 i 件物品的体积和价值。
+
+    输出格式
+
+    输出一个整数，表示最大价值。
+
+    数据范围
+
+    0<N,V≤1000
+
+    0<vi,wi≤1000
+
+    **事例：**
+
+    样例输入：
+
+    >4 5  
+    1 2  
+    2 4  
+    3 4  
+    4 5  
+
+    样例输出：
+
+    > 10
+
++ 解法：
+
+    同样用动态规划做，与之前不能放回相比，增加考虑一步除去第 i 个体积，增加第 i 个的重量。
+
++ 代码：
+
+    ``` java
+    import java.io.*;
+    import java.util.*;
+    public class Main{
+        static int max;
+        public static void main(String[] args){
+            // 与之前的不同在于可以放回，所以最大值中还要包含一个本身自己
+            Scanner sc = new Scanner(System.in);
+            int num = sc.nextInt();
+            int maxV = sc.nextInt();
+            int[] vs = new int[num];
+            int[] values = new int[num];
+            for(int i=0;i<num;i++){
+                vs[i] = sc.nextInt();
+                values[i] = sc.nextInt();
+            }
+            int[][] dp = new int[vs.length+1][maxV+1];
+            for(int i=1;i<vs.length+1;i++){
+                for(int j=1;j<maxV+1;j++){
+                    if(j>=vs[i-1])
+                    dp[i][j] = Math.max(Math.max(dp[i-1][j-vs[i-1]]+values[i-1],dp[i][j-vs[i-1]]+values[i-1]),dp[i-1][j]);
+                    else
+                    dp[i][j] = dp[i-1][j];
+                }
+            }
+            System.out.println(dp[vs.length][maxV]);
+        }
+    }
+    ```
+
+## 13. 找出数组中重复的数字
+
++ 题目描述：
+
+    给定一个长度为 n 的整数数组 nums，数组中所有的数字都在 0∼n−1 的范围内。
+
+    数组中某些数字是重复的，但不知道有几个数字重复了，也不知道每个数字重复了几次。
+
+    请找出数组中任意一个重复的数字。
+
+    注意：如果某些数字不在 0∼n−1 的范围内，或数组中不包含重复数字，则返回 -1；
+
+    **样例：**
+
+    给定 nums = [2, 3, 5, 4, 3, 2, 6, 7]。
+
+    返回 2 或 3。
+
++ 解法：
+
+    采用交换策略，即数组都在 0 - n-1 内，从头开始把对应的值和对应的位置做交换，当发现值一样的时候就不交换也就证明此时冲突了。其实这种思想也可以想象成链表，对应的值是对应的链表位置，跳到对应的链表位置在找下一个链表的位置，撞上了即结束。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int duplicateInArray(int[] nums) {
+            int res = -1;
+            int mid = 0;
+            for(int i=0;i<nums.length;i++){
+                if(nums[i]<0||nums[i]>=nums.length) return -1;
+                while(nums[i]!=i && nums[nums[i]]!=nums[i]){
+                    swap(nums,i,nums[i]);
+                }
+                if(nums[i]!=i){
+                    res = nums[i];
+                    mid = i;
+                    break;
+                }
+            }
+            for(int i = mid;i<nums.length;i++){
+                if(nums[i]<0||nums[i]>=nums.length) return -1;
+            }
+            return res;
+        }
+        public void swap(int[] nums, int a, int b){
+            int temp = nums[a];
+            nums[a]=nums[b];
+            nums[b] = temp;
         }
     }
     ```
