@@ -385,3 +385,148 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 16. 替换空格
+
++ 题目描述：
+
+    请实现一个函数，把字符串中的每个空格替换成"%20"。
+
+    你可以假定输入字符串的长度最大是1000。
+    注意输出字符串的长度可能大于1000。
+
++ 解法：
+
+    提前申请一个替换后长度的 StringBuffer，这样可以避免重复申请空间。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public String replaceSpaces(StringBuffer str) {
+            int appendLength = 0;
+            for(int i = 0;i<str.length();i++){
+                if(str.charAt(i)==' '){
+                    appendLength+=2;
+                }
+            }
+            StringBuffer res = new StringBuffer(str.length()+appendLength);
+            for(int i = 0;i<str.length();i++){
+                char c = str.charAt(i);
+                if(c==' '){
+                    res.append("%20");
+                }else{
+                    res.append(c);
+                }
+            }
+            return res.toString();
+        }
+    }
+    ```
+
+## 17. 从尾到头打印链表
+
++ 题目描述：
+
+    输入一个链表的头结点，按照 从尾到头 的顺序返回节点的值。
+
+    返回的结果用数组存储。
+
++ 解法：
+
+    用一个栈保存从每个节点，再反遍历这个栈。当然也可以递归，但这里是返回数组，递归不方便。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int[] printListReversingly(ListNode head) {
+            Stack<ListNode> stack = new Stack<>();
+            int i = 0;
+            while(head!=null){
+                stack.add(head);
+                head = head.next;
+                i++;
+            }
+            int[] res = new int[i];
+            i=0;
+            while(!stack.isEmpty()){
+                res[i] = stack.pop().val;
+                i++;
+            }
+            return res;
+        }
+    }
+    ```
+
+## 16. 替换空格
+
++ 题目描述：
+
+    请实现一个函数，把字符串中的每个空格替换成"%20"。
+
+    你可以假定输入字符串的长度最大是1000。
+    注意输出字符串的长度可能大于1000。
+
++ 解法：
+
+    提前申请一个替换后长度的 StringBuffer，这样可以避免重复申请空间。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public String replaceSpaces(StringBuffer str) {
+            int appendLength = 0;
+            for(int i = 0;i<str.length();i++){
+                if(str.charAt(i)==' '){
+                    appendLength+=2;
+                }
+            }
+            StringBuffer res = new StringBuffer(str.length()+appendLength);
+            for(int i = 0;i<str.length();i++){
+                char c = str.charAt(i);
+                if(c==' '){
+                    res.append("%20");
+                }else{
+                    res.append(c);
+                }
+            }
+            return res.toString();
+        }
+    }
+    ```
+
+## 18. 重建二叉树
+
++ 题目描述：
+
+    输入一棵二叉树前序遍历和中序遍历的结果，请重建该二叉树。二叉树中每个节点的值都互不相同；输入的前序遍历和中序遍历一定合法；
+
++ 解法：
+
+    前序遍历的第一个节点是中间节点，拿中间节点去数组中定位可以定位到左节点长度和右节点长度。可以用一个 map 记录中序遍历节点方便查找。手边可以画一个二叉树对这算一算 index。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public TreeNode buildTree(int[] preorder, int[] inorder) {
+            Map<Integer,Integer> map = new HashMap<>(); // 中序遍历的 hash 表，这样可以实现找中节点的速度降到 O(1)
+            for(int i=0;i<inorder.length;i++){
+                map.put(inorder[i],i);
+            }
+            return helper(preorder, inorder, 0, 0, preorder.length, map);
+        }
+        public TreeNode helper(int[] preorder, int[] inorder, int preIndex, int inIndex, int length, Map<Integer,Integer> map){
+            if(preIndex>=preorder.length || inIndex>=inorder.length||length<=0) return null;//递归出来的条件是 index 有没有超界和是不是没有长度了
+            int midVal = preorder[preIndex];
+            TreeNode node = new TreeNode(midVal);
+            int newinindex = map.get(midVal);
+            int newLength = newinindex - inIndex;
+            node.left = helper(preorder, inorder, preIndex+1, inIndex, newLength, map);
+            node.right = helper(preorder, inorder, preIndex+newLength+1, newinindex+1, inIndex+length-newinindex-1, map);
+            return node;
+        }
+    }
+    ```
