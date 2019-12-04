@@ -530,3 +530,137 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 19. 二叉树的下一个节点
+
++ 题目描述：
+
+    给定一棵二叉树的其中一个节点，请找出中序遍历序列的下一个节点。
+
+    + 如果给定的节点是中序遍历序列的最后一个，则返回空节点;
+    + 二叉树一定不为空，且给定的节点一定不是空节点；
+
++ 解法：
+
+    需要分两种情况，第一种是二叉树右边不为空，这样下一个节点就是右边的最深的左节点。如果右边为空，就要判断该节点跟他父节点位置，要一直找到该节点是父节点的左节点时，父节点才是下一个点。如果没有那就是最后一个节点了。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode father;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        //只要是右节点非空，就是右节点下的最左节点（不是直接右，第一次做错了）。
+        //如果右节点空，一直往上找，直到他是父亲的左节点
+        public TreeNode inorderSuccessor(TreeNode p) {
+            if(p.right!=null){
+                TreeNode next = p.right;
+                while(next.left!=null){
+                    next = next.left;
+                }
+                return next;
+            }
+            while(p.father!=null){
+                TreeNode temp = p;
+                p = p.father;
+                if(p.left==temp) return p; //只有当老节点是父节点左节点时，才是下一个节点，否则就是继续往上找
+            }
+            return null;
+        }
+    }
+    ```
+
+## 20. 用两个栈实现队列
+
++ 题目描述：
+
+    请用栈实现一个队列，支持如下四种操作：
+
+    + push(x) – 将元素x插到队尾；
+    + pop() – 将队首的元素弹出，并返回该元素；
+    + peek() – 返回队首元素；
+    + empty() – 返回队列是否为空；
+
+    注意：
+
+    + 你只能使用栈的标准操作：push to top，peek/pop from top, size 和 is empty；
+    + 如果你选择的编程语言没有栈的标准库，你可以使用list或者deque等模拟栈的操作；
+    + 输入数据保证合法，例如，在队列为空时，不会进行pop或者peek等操作；
+
+    样例：
+
+    ``` java
+    MyQueue queue = new MyQueue();
+
+    queue.push(1);
+    queue.push(2);
+    queue.peek();  // returns 1
+    queue.pop();   // returns 1
+    queue.empty(); // returns false
+    ```
+
++ 解法：
+
+    两个栈实现队列，一个是用来专门放进的，一个是专门出得。出得栈只有为空的时候，才会把进的栈全部倒入出的栈，这样可以保证顺序不会出现错乱。
+
++ 代码：
+
+    ``` java
+    class MyQueue {
+
+        /** Initialize your data structure here. */
+        Stack<Integer> stackPush; //倒序栈，用来往里面放
+        Stack<Integer> stackPop; //正序栈，用来出，当没有的时候把倒叙里的全都扔到正序里，但一定注意只有空的时候才能扔，否则就不满足顺序了
+        public MyQueue() {
+            stackPush = new Stack<>();
+            stackPop = new Stack<>();
+        }
+        
+        /** Push element x to the back of queue. */
+        public void push(int x) {
+            stackPush.push(x);
+        }
+        
+        /** Removes the element from in front of queue and returns that element. */
+        public int pop() {
+            if(stackPop.isEmpty()){
+                while(stackPush.size()>0){
+                    stackPop.push(stackPush.pop());
+                }
+            }
+            return stackPop.pop();
+        }
+        
+        /** Get the front element. */
+        public int peek() {
+            if(stackPop.isEmpty()){
+                while(stackPush.size()>0){
+                    stackPop.push(stackPush.pop());
+                }
+            }
+            return stackPop.peek();
+        }
+        
+        /** Returns whether the queue is empty. */
+        public boolean empty() {
+            return stackPush.isEmpty()&&stackPop.isEmpty();
+        }
+    }
+
+    /**
+    * Your MyQueue object will be instantiated and called as such:
+    * MyQueue obj = new MyQueue();
+    * obj.push(x);
+    * int param_2 = obj.pop();
+    * int param_3 = obj.peek();
+    * boolean param_4 = obj.empty();
+    */
+    ```
