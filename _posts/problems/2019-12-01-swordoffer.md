@@ -664,3 +664,92 @@ keywords: AcWing 题目
     * boolean param_4 = obj.empty();
     */
     ```
+
+## 21. 斐波那切数列
+
++ 题目描述：
+
+    输入一个整数 n ，求斐波那契数列的第 n 项。
+
++ 解法：
+
+    递归或循环。递归不说了，效率低，循环需要记住前两个数就行。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        // 1 1 2 3 5
+        public int Fibonacci(int n) {
+            if(n<=0) return 0;
+            if(n<=2) return 1;
+            return Fibonacci(n-1)+Fibonacci(n-2);
+        }
+        public int Fibonacci(int n) {
+            if(n<=0) return 0;
+            if(n<=2) return 1;
+            int first = 1;
+            int second = 1;
+            for(int i=3;i<=n;i++){
+                //前一个数等于后一个数，后一个数等于原来的前一个数加上后一个数
+                int temp = first;
+                first = second;
+                second = temp + second;
+            }
+            return second;
+        }
+    }
+    ```
+
+## 22. 旋转最小的数字
+
++ 题目描述：
+
+    把一个数组最开始的若干个元素搬到数组的末尾，我们称之为数组的旋转。
+
+    输入一个升序的数组的一个旋转，输出旋转数组的最小元素。
+
+    例如数组{3,4,5,1,2}为{1,2,3,4,5}的一个旋转，该数组的最小值为1。
+
+    数组可能包含重复项。
+
+    **注意：**数组内所含元素非负，若数组大小为0，请返回-1。
+
+    **示例：**
+
+    输入：nums=[2,2,2,0,1]
+
+    输出：0
+
++ 解法：
+
+    见到排序基本上就是二分法。拿中间数和两边数比，由于旋转后的规律，如果中间数小证明已经过了旋转点，如果中间数大，说明还没到旋转点。但如果相等则不好说了，需要一个一个去比。    
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int findMin(int[] nums) {
+            if(nums.length==0) return -1;
+            //二分法，对于 7890123456，中间数 1 比 7 小，就在左边，如果比 7 大就在右边。
+            int start = 0;
+            int end = nums.length-1;
+            if(nums[start]<nums[end]) return nums[start];//一直递增就是没转
+            while(start<end-1){ //要考虑相等的情况，相等时说不好在左还是在右，比如 22201 就在右，但 1101111 就在左，同时因为 10 这样的，所以差 1 必须停下来
+                int mid = end+(start-end)/2;
+                if(nums[start]>nums[mid]){
+                    end = mid;
+                }else if(nums[start]<nums[mid]){
+                    start = mid;
+                }else{
+                    break;
+                }
+            }
+            int min = nums[start];
+            for(int i=start+1;i<=end;i++){
+                min = Math.min(nums[i],min);
+            }
+            return min;
+        }
+    }
+    ```
