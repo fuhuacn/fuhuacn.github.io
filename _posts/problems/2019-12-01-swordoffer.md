@@ -753,3 +753,66 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 23. 矩阵中的路径
+
++ 题目描述：
+
+    请设计一个函数，用来判断在一个矩阵中是否存在一条包含某字符串所有字符的路径。
+
+    路径可以从矩阵中的任意一个格子开始，每一步可以在矩阵中向左，向右，向上，向下移动一个格子。
+
+    如果一条路径经过了矩阵中的某一个格子，则之后不能再次进入这个格子。
+
+    **注意：**数组内所含元素非负，若数组大小为0，请返回-1。
+
+    **示例：**
+
+    matrix=  
+    [  
+    ["A","B","C","E"],  
+    ["S","F","C","S"],  
+    ["A","D","E","E"]  
+    ]
+
+    str="BCCE" , return "true" 
+
+    str="ASAE" , return "false"
+
++ 解法：
+
+    回溯法，一个字符一个字符的去比，但要记录一个二维数组判定是否访问过这个节点。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public boolean hasPath(char[][] matrix, String str) {
+            if(matrix.length==0) return false;
+            boolean[][] isVisted = new boolean[matrix.length][matrix[0].length];
+            for(int i=0;i<matrix.length;i++){
+                for(int j=0;j<matrix[0].length;j++){
+                    if(helper(matrix,str,i,j,0,isVisted)) return true;
+                }
+            }
+            return false;
+        }
+        public boolean helper(char[][] matrix, String str, int row, int col, int index,boolean[][] isVisited){
+            if(index == str.length()) return true;
+            int rowLength = matrix.length;
+            int colLength = matrix[0].length;
+            if(row<0||col<0||row==rowLength||col==colLength||isVisited[row][col]){
+                return false;
+            }
+            if(matrix[row][col]==str.charAt(index)){
+                isVisited[row][col] = true;
+                boolean res = helper(matrix,str,row-1,col,index+1,isVisited)||helper(matrix,str,row+1,col,index+1,isVisited)||helper(matrix,str,row,col-1,index+1,isVisited)||helper(matrix,str,row,col+1,index+1,isVisited);
+                if(res) return true;
+                isVisited[row][col] = false;
+                return false;
+            }else{
+                return false;
+            }
+        }
+    }
+    ```
