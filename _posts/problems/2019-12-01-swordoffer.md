@@ -816,3 +816,91 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 24. 机器人的运动范围
+
++ 题目描述：
+
+    地上有一个 m 行和 n 列的方格，横纵坐标范围分别是 0∼m−1 和 0∼n−1。
+
+    一个机器人从坐标0,0的格子开始移动，每一次只能向左，右，上，下四个方向移动一格。
+
+    但是不能进入行坐标和列坐标的数位之和大于 k 的格子。
+
+    请问该机器人能够达到多少个格子？
+
+    **示例：**
+
+    输入：k=7, m=4, n=5
+
+    输出：20
+
++ 解法：
+
+    DFS：因为固定了从（0，0）走，所以其实路只会向下或向右走，左和上的一定是走过的，走到的地方判断符不符合。
+
+    BFS：从头开始把能走到的加入队列挨个走。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int movingCount(int threshold, int rows, int cols)
+        {
+            boolean[][] visited = new boolean[rows][cols];
+            int[] res = new int[1];
+            helper(threshold, rows, cols, 0, 0, res, visited);
+            return res[0];
+        }
+        public void helper(int threshold, int rows, int cols,int row,int col,int[] res,boolean[][] visited){
+            // 从 0,0 出发只用顾及向右和向下就可以了
+            if(row==rows||col==cols||visited[row][col]){
+                return;
+            }
+            visited[row][col] = true;
+            if(getValue(row,col)<=threshold){
+                res[0]++;
+                helper(threshold, rows, cols,row+1,col,res,visited);
+                helper(threshold, rows, cols,row,col+1,res,visited);
+            }
+        }
+        public int movingCount2(int threshold, int rows, int cols)
+        {
+            if (rows < 1 || cols < 1)
+                return 0;
+            boolean[][] visited = new boolean[rows][cols];
+            Queue<int[]> queue = new LinkedList<>();//存的是一对分别是：行和列
+            int[] begin = new int[2];
+            queue.add(begin);
+            int res = 0;
+            visited[0][0] = true;
+            while(queue.size()>0){
+                int[] temp = queue.poll();
+                res++;
+                for(int i=0;i<2;i++){
+                    temp[i]++;
+                    int row = temp[0];
+                    int col = temp[1];
+                    if(row<rows&&col<cols&&!visited[row][col]&&getValue(row,col)<=threshold){
+                        queue.add(new int[]{row,col}); //这块不能直接放数组，因为数组是地址，一会儿还要减回去
+                        visited[row][col]=true;
+                    }
+                    temp[i]--;
+                }
+            }
+            return res;
+        }
+        public int getValue(int row,int col){
+            int sum=0;
+            while(row>0){
+                sum += row%10;
+                row /= 10;
+            }
+            while(col>0){
+                sum += col%10;
+                col /= 10;
+            }
+            return sum;
+        }
+    }
+    ```
