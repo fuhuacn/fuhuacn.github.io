@@ -904,3 +904,206 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 25. 剪绳子
+
++ 题目描述：
+
+    给你一根长度为 n 绳子，请把绳子剪成 m 段（m、n）都是整数，2≤n≤58 并且 m≥2）。
+
+    每段的绳子的长度记为k[0]、k[1]、……、k[m]。k[0]k[1] … k[m] 可能的最大乘积是多少？
+
+    例如当绳子的长度是8时，我们把它剪成长度分别为2、3、3的三段，此时得到最大的乘积18。
+
+    **示例：**
+
+    输入：8
+
+    输出：18
+
++ 解法：
+
+    动态规划，他要注意长度为 1、2、3 时不切比切了还长。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int maxProductAfterCutting(int length)
+        {
+            if(length==0) return 0;
+            if(length<=2) return 1;
+            if(length==3) return 2;//这三个数不切比切了长
+            int[] dp = new int[length+1];
+            dp[1] = 1;
+            for(int i=2;i<=length;i++){
+                dp[i] = i;
+                for(int j=1;j<=i/2;j++){
+                    dp[i] = Math.max(dp[i],dp[j]*dp[i-j]);
+                }
+            }
+            return dp[length];
+        }
+    }
+    ```
+
+## 26. 二进制中 1 的个数
+
++ 题目描述：
+
+    输入一个32位整数，输出该数二进制表示中1的个数。
+
+    **示例：**
+
+    输入：-2
+
+    输出：31
+    解释：-2在计算机里会被表示成11111111111111111111111111111110，一共有31个1。
+
++ 解法：
+
+    Java 有无符号右移（>>>）这题就比较好做，每次右移一位和 1 做与运算就好了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int NumberOf1(int n)
+        {
+            //得用无符号右移(>>>)，>> 是有符号右移，这样不会补 1。
+            int count = 0;
+            while(n!=0){
+                if((n&1)==1) count++;
+                n>>>=1;
+            }
+            return count;
+        }
+    }
+    ```
+
+## 27. 数值的整数次方
+
++ 题目描述：
+
+    实现函数double Power(double base, int exponent)，求base的 exponent次方。
+
+    不得使用库函数，同时不需要考虑大数问题。
+
+    **示例：**
+
+    输入：10 ，-2  
+
+    输出：0.01
+
++ 解法：
+
+    需要考虑负数情况，有负数取个倒数。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public double Power(double base, int exponent) {
+            if(exponent==0) return 1;
+            double res = base;
+            int absExp = exponent>0?exponent:-exponent;
+            for(int i=2;i<=absExp;i++){
+                res *= base;
+            }
+            return exponent>0?res:1/res;
+        }
+    }
+    ```
+
+## 28. 在O(1)时间删除链表结点
+
++ 题目描述：
+
+    给定单向链表的一个节点指针，定义一个函数在O(1)时间删除该结点。
+
+    假设链表一定存在，并且该节点一定不是尾节点。
+
+    **示例：**
+
+    输入：链表 1->4->6->8
+
+    删掉节点：第2个节点即6（头节点为第0个节点）
+
+    输出：新链表 1->4->8
+
++ 解法：
+
+    把当前节点变成他的下一个节点就好了。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public void deleteNode(ListNode node) {
+            node.val = node.next.val;
+            node.next = node.next.next;
+        }
+    }
+    ```
+
+## 29. 删除链表中重复的节点
+
++ 题目描述：
+
+    在一个**排序**的链表中，存在重复的结点，请删除该链表中重复的结点，重复的结点不保留。
+
+    **示例：**
+
+    输入：1->2->3->3->4->4->5
+
+    输出：1->2->5
+
++ 解法：
+
+    首先需要一个头节点，因为有可能第一个就是重复的就要被删除。
+
+    需要一个节点来表示目前上一个已经确定的非重复节点。
+
+    把每个节点和每个节点的下一个值去比。如果值相等，那他就是重复节点，就要用一个循环一直走到不再等的时候。如果不等，证明这个节点是唯一的。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode deleteDuplication(ListNode head) {
+            if(head==null) return null;
+            ListNode first = new ListNode(-1);//以防第一个就是重复节点，增加一个头。
+            first.next = head;
+            ListNode lastNode = first;//上一个确定不重复的点，head 是目前到的点
+            while(head!=null && head.next!=null){
+                if(head.val == head.next.val){
+                    while(head.next!=null&&head.val == head.next.val){
+                        head = head.next;
+                    }
+                    head = head.next;
+                    lastNode.next = head; // 把之前删除的删掉，但此时的 head 依然没有比较，所以 lastNode 不会变，无法确定当前这个head是否是唯一的。
+                }else{
+                    lastNode = head;
+                    head = head.next;
+                }
+            }
+            return first.next;
+        }
+    }
+    ```
