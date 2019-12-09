@@ -1107,3 +1107,61 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 30. 正则表达式匹配
+
++ 题目描述：
+
+    请实现一个函数用来匹配包括'.'和'*'的正则表达式。
+
+    模式中的字符'.'表示任意一个字符，而'*'表示它前面的字符可以出现任意次（含0次）。
+
+    在本题中，匹配是指字符串的所有字符匹配整个模式。
+
+    例如，字符串"aaa"与模式"a.a"和"ab*ac*a"匹配，但是与"aa.a"和"ab*a"均不匹配。
+
++ 解法：
+
+    首先明确什么情况下匹配失败：当正则表达式匹配完了，但字符还有的时候，就肯定匹配不上了。
+
+    接下来考虑情况，首先是如果正则和字符串这位相同，或者正则这位是 . 双方都加一位就好了。
+
+    如果正则的下一位是 *，这时情况比较复杂：
+    
+    当此位相同时：
+    + 有可能是正则匹配无数个此位，即正则不变但字符串往后跳一位。
+    + 有可能是正则这位算 0 个，由下面一位来和此位相等，即正则跳两位而字符串不变。
+    + 有可能正好是结尾，也就是正则跳两位，字符串走一位。这一种情况是上两种的结合，所以代码里可以不体现，
+
+    当此位不相同时：
+    + 只可能是 * 算 0 个，所以正则跳两位而字符串不变。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public boolean isMatch(String s, String p) {
+            return helper(s,p,0,0);
+        }
+        public boolean helper(String s, String p, int sIndex, int pIndex){
+            if(pIndex == p.length() && sIndex!=s.length()) return false; //p 完了，s 没完则后面一定匹配不上了
+            if(p.length() == pIndex && s.length()==sIndex) return true;
+            // 如果这一位的下一位是 * 且此位置的字符相同，则可以让比较 s 过一位，p 不变即无数个此字符。s 过一位，p 跳两位，即这是最后一个 *，s 不变，p 跳两位，即没有这个字符即 p 这次按 0 算，找下个字符
+            // 如果不相同则可能是 s 不变，p 跳两位，即没有这个字符。
+            // s 过一位，p 跳两位，即这是最后一个 * 这种情况是 s 过一位，p 不变 情况下再 s 不变，p 跳两位，所以不用计算这个了。
+            if(pIndex+1<p.length() && p.charAt(pIndex+1)=='*'){
+                // 一定要加 sIndex 的判断，因为很有可能 s 已经匹配完了，p 还有 * 要记着有 . 的情况
+                if(sIndex<s.length()&&(s.charAt(sIndex) == p.charAt(pIndex) || p.charAt(pIndex)=='.')){
+                    return helper(s,p,sIndex+1,pIndex)||helper(s,p,sIndex,pIndex+2);
+                }else{
+                    return helper(s,p,sIndex,pIndex+2);
+                }
+            }
+            //如果两个字符相同或 . 则都下一位
+            if(sIndex<s.length()&&(s.charAt(sIndex) == p.charAt(pIndex)||p.charAt(pIndex)=='.')){
+                return helper(s,p,sIndex+1,pIndex+1);
+            }
+            return false;
+        }
+    }
+    ```
