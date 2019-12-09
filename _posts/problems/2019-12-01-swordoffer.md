@@ -1165,3 +1165,62 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 31. 表示数值的字符串
+
++ 题目描述：
+
+    请实现一个函数用来判断字符串是否表示数值（包括整数和小数）。
+
+    例如，字符串"+100","5e2","-123","3.1416"和"-1E-16"都表示数值。
+
+    但是"12e","1a3.14","1.2.3","+-5"和"12e+4.3"都不是。
+
+    注意:
+
+    + 小数可以没有整数部分，例如.123等于0.123；
+    + 小数点后面可以没有数字，例如233.等于233.0；
+    + 小数点前面和后面可以有数字，例如233.666;
+    + 当e或E前面没有数字时，整个字符串不能表示数字，例如.e1、e1；
+    + 当e或E后面没有整数时，整个字符串不能表示数字，例如12e、12e+5.4;
+
++ 解法：
+
+    完全就是规则匹配，非常无聊。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public boolean isNumber(String s) {
+            if(s.equals(".")||s.equals("")) return false;
+            char[] cs = s.toCharArray();
+            boolean isE = false;
+            boolean isSymbol = false;
+            boolean isDot = false;
+            for(int i=0;i<cs.length;i++){
+                if(cs[i]=='e'||cs[i]=='E'){
+                    //如果是 e，他不能在第一位也不能在最后一位，并且之前不能出现过，并且前面一位必须是数字
+                    if(i==0||isE||i==cs.length-1||(cs[i-1]<'0'||cs[i-1]>'9')){
+                        return false;
+                    }
+                    isE = true;
+                }else if(cs[i]=='.'){
+                    //如果是 . 前面不能出现过 e，不能出现过小数点
+                    if(isE||isDot||(i==cs.length-1&&(cs[i-1]>'9'||cs[i-1]<'0'))){
+                        return false;
+                    }
+                    isDot = true;
+                }else if(cs[i]=='+'||cs[i]=='-'){
+                    //如果是正负号，必须在第一位或者前面一位是 e，并且不能是最后一位
+                    if(i==0){
+                        isSymbol = true;
+                    }else{
+                        if((cs[i-1]!='e'&&cs[i-1]!='E')||i==cs.length-1) return false;
+                    }
+                }else if(cs[i]<'0'||cs[i]>'9') return false;
+            }
+            return true;
+        }
+    }
+    ```
