@@ -517,3 +517,6 @@ AS 之间的路由选择很困难，主要是由于：
 每个 AS 都必须配置 BGP 发言人，通过在两个相邻 BGP 发言人之间建立 TCP 连接来交换路由信息。
 
 ![BGP](/images/posts/knowledge/computerNetwork/bgp.png)
+
+# 五、传输层
+

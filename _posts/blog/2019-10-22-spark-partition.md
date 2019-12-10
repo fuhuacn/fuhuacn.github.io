@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Spark分区原理
-categories: Knowledge
+categories: Blogs
 description: 学习 Spark 的分区原理
 keywords: Spark,分区
 ---

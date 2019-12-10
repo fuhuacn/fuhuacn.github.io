@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Spark Job、Task、Stage关系
-categories: Knowledge
+categories: Blogs
 description: Spark Job、Stage、Task关系
 keywords: Spark
 ---
