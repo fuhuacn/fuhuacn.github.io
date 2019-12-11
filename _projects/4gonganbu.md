@@ -48,7 +48,9 @@ description: 公安部第一研究所身份信息大数据迁移项目
 
 **注意：** topic 1 和 topic 2 的分区个数均设定为 5。与物理机数量（每台物理机上均安装 Kafka 和 Spark）相同。
 
-## Spark 实时分析组件
+## Spark 实时分析组件（后以更改为 Flink）
+
+*Spark 部分后以优化为 Flink，下面是更改前的部分。*
 
 Spark 作为 topic1 的消费者，实时消费发送来的身份证列表进行验证。主要验证就是身份证信息是否合规。这也是为什么放弃了 Sqoop 的原因。
 
@@ -75,6 +77,8 @@ Spark 作为 topic1 的消费者，实时消费发送来的身份证列表进行
 校验信息完成的身份证号会以 topic 2 发送回 kafka 等待处理。
 
 Spark 程序使用 yarn 集群方式提交。
+
+*后使用 Flink 代替 Spark Streaming。*
 
 ## HIVE 存储组件
 

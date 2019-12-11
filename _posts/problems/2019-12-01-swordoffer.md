@@ -1360,3 +1360,81 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 35. 反转链表
+
++ 题目描述：
+
+    定义一个函数，输入一个链表的头结点，反转该链表并输出反转后链表的头结点。
+
++ 解法：
+
+    记录一下上一个节点。遍历节点，每个节点的下一个节点是上一个节点就可以了。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode reverseList(ListNode head) {
+            ListNode prev = null;
+            while(head!=null){
+                ListNode next = head.next;
+                head.next = prev;
+                prev = head;
+                if(next == null) return head;
+                head = next;
+            }
+            return head;
+        }
+    }
+    ```
+
+## 36. 合并两个排序的链表
+
++ 题目描述：
+
+    输入两个递增排序的链表，合并这两个链表并使新链表中的结点仍然是按照递增排序的。
+
+    **样例：**
+
+    输入：1->3->5 , 2->4->5
+
+    输出：1->2->3->4->5->5
+
++ 解法：
+
+    记录一下上一个节点。遍历节点，每个节点的下一个节点是上一个节点就可以了。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode reverseList(ListNode head) {
+            ListNode prev = null;
+            while(head!=null){
+                ListNode next = head.next;
+                head.next = prev;
+                prev = head;
+                if(next == null) return head;
+                head = next;
+            }
+            return head;
+        }
+    }
+    ```

@@ -9,7 +9,7 @@ keywords: Spark,分区
 ## 前提知识
 
 - 每个节点可以起一个或多个 Executor。
-- 每个Executor由若干 core 组成，每个 Executor 的每个 core 一次只能执行一个 Task。
+- 每个 Executor 由若干 core 组成，每个 Executor 的每个 core 一次只能执行一个 Task。
 - 每个 Task 执行的结果就是生成了目标 RDD 的一个 partiton。
 
 ## Spark分区的概念
