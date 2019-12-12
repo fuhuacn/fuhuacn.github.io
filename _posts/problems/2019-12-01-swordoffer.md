@@ -1411,7 +1411,7 @@ keywords: AcWing 题目
 
 + 解法：
 
-    记录一下上一个节点。遍历节点，每个节点的下一个节点是上一个节点就可以了。
+    一个一个的比值，队列头和队列头比值，把小的往里放。最后在把非空队列全放入。
 
 + 代码：
 
@@ -1425,16 +1425,111 @@ keywords: AcWing 题目
     * }
     */
     class Solution {
-        public ListNode reverseList(ListNode head) {
-            ListNode prev = null;
-            while(head!=null){
-                ListNode next = head.next;
-                head.next = prev;
-                prev = head;
-                if(next == null) return head;
-                head = next;
+        public ListNode merge(ListNode l1, ListNode l2) {
+            ListNode res = new ListNode(-1);
+            ListNode node = res;
+            while(l1!=null && l2!=null){
+                if(l1.val<l2.val){
+                    node.next = l1;
+                    l1 = l1.next;
+                }else{
+                    node.next = l2;
+                    l2 = l2.next;
+                }
+                node = node.next;
             }
-            return head;
+            while(l1!=null){
+                node.next = l1;
+                l1 = l1.next;
+                node = node.next;
+            }
+            while(l2!=null){
+                node.next = l2;
+                l2 = l2.next;
+                node = node.next;
+            }
+            return res.next;
+        }
+    }
+    ```
+
+## 37. 树的子结构
+
++ 题目描述：
+
+    输入两棵二叉树A，B，判断B是不是A的子结构。
+
+    我们规定空树不是任何树的子结构。
+
+    **样例：**
+
+    ![树的字结构](/images/posts/problems/swordOffer/WX20191212-191245.png)
+
++ 解法：
+
+    先比较两棵树的节点值是否一样，如果一样在递归比较同时的左边且同时的右边（即完全相同）。如果不一样，就比较左边和根或右边和根（即可能子树完全相同）。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public boolean hasSubtree(TreeNode pRoot1, TreeNode pRoot2) {
+            if(pRoot2==null) return false;
+            return helper(pRoot1,pRoot2);
+        }
+        public boolean helper(TreeNode pRoot1, TreeNode pRoot2) {
+            if(pRoot2==null) return true;
+            if(pRoot1==null) return false;
+            boolean res = false;
+            if(pRoot1.val==pRoot2.val){
+            res = helper(pRoot1.left,pRoot2.left) && helper(pRoot1.right,pRoot2.right);
+            }
+            if(res) return true;
+            return helper(pRoot1.left,pRoot2) || helper(pRoot1.right,pRoot2);
+        }
+    }
+    ```
+
+## 38. 二叉树的镜像
+
++ 题目描述：
+
+    输入一个二叉树，将它变换为它的镜像。
+
++ 解法：
+
+    把树的左右节点对调，之后递归他的左节点和右节点。这样每个节点都做了镜像最后的结果就是都镜像了。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public void mirror(TreeNode root) {
+            if(root != null){
+                TreeNode temp = root.left;
+                root.left = root.right;
+                root.right = temp;
+                mirror(root.left);
+                mirror(root.right);
+            }
         }
     }
     ```
