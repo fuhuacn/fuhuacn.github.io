@@ -1533,3 +1533,119 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 39. 对称的二叉树
+
++ 题目描述：
+
+    请实现一个函数，用来判断一棵二叉树是不是对称的。
+
+    如果一棵二叉树和它的镜像一样，那么它是对称的。
+
++ 解法：
+
+    判断树的左子树值和树的右子树值是否相等，如果相等再继续判断两棵树间的左右子树和右左子树是否相等。这样就是一个递归问题。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public boolean isSymmetric(TreeNode root) {
+            if(root == null) return true;
+            return helper(root.left, root.right);
+        }
+        public boolean helper(TreeNode node1, TreeNode node2){
+            if(node1==node2) return true; // 两个都为 null
+            if(node1==null||node2==null||node1.val!=node2.val) return false; // 只有一个为 null
+            return helper(node1.left, node2.right) && helper(node1.right, node2.left);
+        }
+    }
+    ```
+
+## 40. 顺时针打印矩阵
+
++ 题目描述：
+
+    输入一个矩阵，按照从外向里以顺时针的顺序依次打印出每一个数字。
+
+    **样例：**
+
+    输入：
+
+    [  
+    [1, 2, 3, 4],  
+    [5, 6, 7, 8],  
+    [9,10,11,12]  
+    ]
+
+    输出：[1,2,3,4,8,12,11,10,9,5,6,7]
+
++ 解法：
+
+    记录一下当前矩阵每一行，每一列遍历到的头是哪儿，尾是哪儿，然后对应着固定行或列转就好了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int[] printMatrix(int[][] matrix) {
+            if(matrix.length==0) return new int[]{};
+            int[] res = new int[matrix.length*matrix[0].length];
+            int rowStart = 0;
+            int columnStart = 0;
+            int rowEnd = matrix.length-1;
+            int columnEnd = matrix[0].length-1;
+            int row = 0;
+            int column = 0;
+            int resIndex = 0;
+            while(rowStart<=rowEnd&&columnStart<=columnEnd){
+                while(row == rowStart && column<=columnEnd&&resIndex<matrix.length*matrix[0].length){
+                    res[resIndex++]=matrix[row][column++];
+                    if(column>columnEnd){
+                        column--;
+                        rowStart++;
+                        row++;
+                        break;
+                    }
+                }
+                while(column == columnEnd && row<=rowEnd&&resIndex<matrix.length*matrix[0].length){
+                    res[resIndex++]=matrix[row++][column];
+                    if(row>rowEnd){
+                        row--;
+                        columnEnd--;
+                        column--;
+                        break;
+                    }
+                }
+                while(row == rowEnd && column>=columnStart&&resIndex<matrix.length*matrix[0].length){
+                    res[resIndex++]=matrix[row][column--];
+                    if(column<columnStart){
+                        column++;
+                        rowEnd--;
+                        row--;
+                        break;
+                    }
+                }
+                while(column == columnStart && row>=rowStart&&resIndex<matrix.length*matrix[0].length){
+                    res[resIndex++]=matrix[row--][column];
+                    if(row<rowStart){
+                        row++;
+                        columnStart++;
+                        column++;
+                        break;
+                    }
+                }
+            }
+            return res;
+        }
+    }
+    ```
