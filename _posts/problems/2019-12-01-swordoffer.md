@@ -1649,3 +1649,112 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 41. 包含min函数的栈
+
++ 题目描述：
+
+    设计一个支持push，pop，top等操作并且可以在O(1)时间内检索出最小元素的堆栈。
+
+    + push(x)–将元素x插入栈中
+    + pop()–移除栈顶元素
+    + top()–得到栈顶元素
+    + getMin()–得到栈中最小元素
+
++ 解法：
+
+    用两个栈，一个栈记录每个元素，另一个栈记录到目前为止的最小值。
+
++ 代码：
+
+    ``` java
+    class MinStack {
+        
+        Stack<Integer> stack = new Stack<>();
+        Stack<Integer> minStack = new Stack<>();//永远放当前最小的元素
+        
+        /** initialize your data structure here. */
+        public MinStack() {
+            
+        }
+        
+        public void push(int x) {
+            stack.push(x);
+            if(minStack.isEmpty()) minStack.push(x);
+            else{
+                minStack.push(minStack.peek()>x?x:minStack.peek());
+            }
+        }
+        
+        public void pop() {
+            if(!minStack.isEmpty()){
+                minStack.pop();
+                stack.pop();
+            }
+        }
+        
+        public int top() {
+            return stack.isEmpty()?-1:stack.peek();
+        }
+        
+        public int getMin() {
+            return minStack.isEmpty()?-1:minStack.peek();
+        }
+    }
+
+    /**
+    * Your MinStack object will be instantiated and called as such:
+    * MinStack obj = new MinStack();
+    * obj.push(x);
+    * obj.pop();
+    * int param_3 = obj.top();
+    * int param_4 = obj.getMin();
+    */
+    ```
+
+## 42. 栈的压入、弹出序列
+
++ 题目描述：
+
+    输入两个整数序列，第一个序列表示栈的压入顺序，请判断第二个序列是否可能为该栈的弹出顺序。
+
+    假设压入栈的所有数字均不相等。
+
+    例如序列1,2,3,4,5是某栈的压入顺序，序列4,5,3,2,1是该压栈序列对应的一个弹出序列，但4,3,5,1,2就不可能是该压栈序列的弹出序列。
+
+    **注意：**若两个序列长度不等则视为并不是一个栈的压入、弹出序列。若两个序列都为空，则视为是一个栈的压入、弹出序列。
+
+    **样例：**
+
+    输入：[1,2,3,4,5] [4,5,3,2,1]
+
+    输出：true
+
++ 解法：
+
+    对于一个栈，每部操作只有两种可能。当当前栈顶元素和 pop 该输出的相等时，一定要推出。当不等，传入下一个元素。这样可以用一个栈模拟当前 push 的情况。模拟全过程。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        //每次对原栈只有两种操作，一种是压入下一个元素，一种是弹出栈顶元素，跟 pop 的比较，如果 pop 的下一个和当前栈顶一样，就一定是弹出来了，否则就是压入下一个了
+        public boolean isPopOrder(int [] pushV,int [] popV) {
+            if(pushV.length!=popV.length) return false;
+            Stack<Integer> push = new Stack<>();//模拟当前栈中的情况
+            int pushI = 0;
+            int popI = 0;
+            while(popI<popV.length){
+                if(push.isEmpty()||push.peek()!=popV[popI]){
+                    if(pushI==pushV.length) return false;
+                    push.push(pushV[pushI]);
+                    pushI++;
+                }else{
+                    push.pop();
+                    popI++;
+                }
+            }
+            return true;
+        }
+    }
+    ```
