@@ -1758,3 +1758,150 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 43. 不分行从上往下打印二叉树
+
++ 题目描述：
+
+    从上往下打印出二叉树的每个结点，同一层的结点按照从左到右的顺序打印。
+
++ 解法：
+
+    广度搜索。由于他不涉及按层打印一类的问题，所以不需要记录每一层数量。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public List<Integer> printFromTopToBottom(TreeNode root) {
+            Queue<TreeNode> q = new LinkedList<>();
+            List<Integer> list = new LinkedList<>();
+            if(root==null) return list;
+            q.add(root);
+            while(q.size()>0){
+                TreeNode node = q.poll();
+                list.add(node.val);
+                if(node.left!=null){
+                    q.add(node.left);
+                }
+                if(node.right!=null){
+                    q.add(node.right);
+                }
+            }
+            return list;
+        }
+    }
+    ```
+
+## 44. 分行从上往下打印二叉树
+
++ 题目描述：
+
+    从上到下按层打印二叉树，同一层的结点按从左到右的顺序打印，每一层打印到一行。
+
++ 解法：
+
+    广度搜索。需要记录每一层数量。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public List<List<Integer>> printFromTopToBottom(TreeNode root) {
+            List<List<Integer>> res = new LinkedList<>();
+            LinkedList<TreeNode> list = new LinkedList<>();
+            if(root==null) return res;
+            list.add(root);
+            while(list.size()>0){
+                int thisLineSize = list.size();
+                List<Integer> oneLine = new LinkedList<>();
+                for(int i=0;i<thisLineSize;i++){
+                    TreeNode node = list.poll();
+                    oneLine.add(node.val);
+                    if(node.left!=null){
+                        list.add(node.left);
+                    }
+                    if(node.right!=null){
+                        list.add(node.right);
+                    }
+                }
+                res.add(oneLine);
+            }
+            return res;
+        }
+    }
+    ```
+
+## 44. 分行从上往下打印二叉树
+
++ 题目描述：
+
+    请实现一个函数按照之字形顺序从上向下打印二叉树。
+
+    即第一行按照从左到右的顺序打印，第二层按照从右到左的顺序打印，第三行再按照从左到右的顺序打印，其他行以此类推。
+
++ 解法：
+
+    广度搜索。需要记录每一层数量，使用双端 LinkedList，一轮从前出，一轮从后出，记录一个标识为标识这一层从左往右还是从右往左就可以了。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public List<List<Integer>> printFromTopToBottom(TreeNode root) {
+            List<List<Integer>> res = new LinkedList<>();
+            LinkedList<TreeNode> list = new LinkedList<>();
+            boolean firstToLast = false;
+            if(root==null) return res;
+            list.add(root);
+            while(list.size()>0){
+                int thisLineSize = list.size();
+                LinkedList<Integer> oneLine = new LinkedList<>();
+                firstToLast = !firstToLast;
+                for(int i=0;i<thisLineSize;i++){
+                    TreeNode node = list.poll();
+                    if(firstToLast){
+                        oneLine.add(node.val);
+                    }else{
+                        oneLine.addFirst(node.val);
+                    }
+                    if(node.left!=null){
+                        list.add(node.left);
+                    }
+                    if(node.right!=null){
+                        list.add(node.right);
+                    }
+                }
+                res.add(oneLine);
+            }
+            return res;
+        }
+    }
+    ```
