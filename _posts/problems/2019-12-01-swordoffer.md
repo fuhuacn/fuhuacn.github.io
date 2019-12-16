@@ -1802,7 +1802,7 @@ keywords: AcWing 题目
     }
     ```
 
-## 44. 分行从上往下打印二叉树
+## 45. 分行从上往下打印二叉树
 
 + 题目描述：
 
@@ -1902,6 +1902,163 @@ keywords: AcWing 题目
                 res.add(oneLine);
             }
             return res;
+        }
+    }
+    ```
+
+## 45. 分行从上往下打印二叉树
+
++ 题目描述：
+
+    从上到下按层打印二叉树，同一层的结点按从左到右的顺序打印，每一层打印到一行。
+
++ 解法：
+
+    广度搜索。需要记录每一层数量。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public List<List<Integer>> printFromTopToBottom(TreeNode root) {
+            List<List<Integer>> res = new LinkedList<>();
+            LinkedList<TreeNode> list = new LinkedList<>();
+            if(root==null) return res;
+            list.add(root);
+            while(list.size()>0){
+                int thisLineSize = list.size();
+                List<Integer> oneLine = new LinkedList<>();
+                for(int i=0;i<thisLineSize;i++){
+                    TreeNode node = list.poll();
+                    oneLine.add(node.val);
+                    if(node.left!=null){
+                        list.add(node.left);
+                    }
+                    if(node.right!=null){
+                        list.add(node.right);
+                    }
+                }
+                res.add(oneLine);
+            }
+            return res;
+        }
+    }
+    ```
+
+## 46. 二叉搜索树的后序遍历序列
+
++ 题目描述：
+
+    输入一个整数数组，判断该数组是不是某二叉搜索树的后序遍历的结果。
+
+    如果是则返回true，否则返回false。
+
+    假设输入的数组的任意两个数字都互不相同。
+
++ 解法：
+
+    二叉搜索树的后序遍历，中间节点也就在最后一位。所以先拿到 root 节点。之后利用左节点比 root 小，右节点比 root 大这一特点，分开左右边。然后验证右边的是不是都比 root 小。之后一直递归下去查看每一个子节点是否也都是二叉搜索树的后序遍历。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        //二叉搜索树的后续遍历最后一个是根，左子树都在右子树左边且左子树比根小，右子树比根大。也就是说找到左右子树分界点，判断右边的有没有比根小的就可以了
+        //要一直递归到空
+        public boolean verifySequenceOfBST(int [] sequence) {
+            if(sequence==null||sequence.length==0){
+                return true;
+            }
+            int root = sequence[sequence.length-1];
+            int firstRight = 0;
+            for(;firstRight<sequence.length-1;firstRight++){
+                if(sequence[firstRight]>root) break;
+            }
+            int[] right = new int[sequence.length-2-firstRight+1];
+            for(int rightI = firstRight;rightI<sequence.length-1;rightI++){
+                if(sequence[rightI]<root){
+                    return false;
+                }
+                right[rightI-firstRight]=sequence[rightI];
+            }
+            int[] left = new int[firstRight];
+            for(int i=0;i<firstRight;i++){
+                left[i] = sequence[i];
+            }
+            return verifySequenceOfBST(left)&&verifySequenceOfBST(right);
+        }
+    }
+    ```
+
+## 47. 二叉树中和为某一值的路径
+
++ 题目描述：
+
+    输入一棵二叉树和一个整数，打印出二叉树中结点值的和为输入整数的所有路径。
+
+    从树的根结点开始往下一直到叶结点所经过的结点形成一条路径。
+
++ 解法：
+
+    用的是 DFS 回溯法，每次判断一次当前的 target 是否能为 0 了（其实它必须到叶子节点，想多了）。把轮到的节点的值加进去后记得要拿出来。因为这是左右都要用的。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public List<List<Integer>> findPath(TreeNode root, int sum) {
+            List<List<Integer>> res = new LinkedList<>();
+            LinkedList<Integer> line = new LinkedList<>();
+            helper(root,sum,res,line);
+            return res;
+        }
+        //这个的回溯因为会调用左右两次，所以要保证 target 要在进入 node 之后减去，否则等着在他的子集去减可能会左右两边重复。
+        //下面这个是不一定到底的，最早理解题意错了
+        public void helper2(TreeNode node, int target, List<List<Integer>> res, LinkedList<Integer> line) {
+            if(node == null) return;
+            line.add(node.val);
+            if(target==node.val){
+                res.add(new ArrayList<>(line));
+            }
+            target-=node.val;
+            helper2(node.left,target,res,line);
+            if(node.left!=null)line.removeLast();;
+            helper2(node.right,target,res,line);
+            if(node.right!=null)line.removeLast();;
+        }
+        //必须到底的
+        public void helper(TreeNode node, int target, List<List<Integer>> res, LinkedList<Integer> line) {
+            if(node == null) return;
+            line.add(node.val);
+            if(node.left==null&&node.right==null){
+                if(target==node.val){
+                    res.add(new ArrayList<>(line));//要新建一个队列，不能使用原来的，右边的也会往这个队列里加的
+                }
+                return;
+            }
+            target-=node.val;
+            helper(node.left,target,res,line);
+            if(node.left!=null)line.removeLast();//不要用 remove(new Integer(node.left.val))，因为要顺序，这样可能会删除前面的重复数字
+            helper(node.right,target,res,line);
+            if(node.right!=null)line.removeLast();
         }
     }
     ```
