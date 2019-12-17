@@ -2062,3 +2062,59 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 48. 复杂链表的复刻
+
++ 题目描述：
+
+    请实现一个函数可以复制一个复杂链表。
+
+    在复杂链表中，每个结点除了有一个指针指向下一个结点外，还有一个额外的指针指向链表中的任意结点或者null。
+
++ 解法：
+
+    复制链表中的每一个节点成为他下一个节点，再把节点全部单拿出来形成一个新链表。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for singly-linked list with a random pointer.
+    * class ListNode {
+    *     int val;
+    *     ListNode next, random;
+    *     ListNode(int x) { this.val = x; }
+    * };
+    */
+    class Solution {
+        public ListNode copyRandomList(ListNode head) {
+            if(head==null) return null;
+            ListNode node = head;
+            while(node!=null){
+                ListNode next = node.next;
+                ListNode dup = new ListNode(node.val);
+                node.next = dup;
+                dup.next = next;
+                node = node.next.next;
+            }
+            node = head;
+            while(node!=null){
+                node.next.random = node.random==null?null:node.random.next;
+                node = node.next.next;
+            }
+            ListNode first = new ListNode(-1);
+            node = head;
+            first.next = node.next;
+            node.next = node.next.next;
+            node = node.next;
+            ListNode changeNode = first.next;
+            while(node!=null){
+                changeNode.next = node.next;
+                node.next = node.next.next;
+                node = node.next;
+                changeNode = changeNode.next;
+            }
+            return first.next;
+        }
+    }
+    ```
