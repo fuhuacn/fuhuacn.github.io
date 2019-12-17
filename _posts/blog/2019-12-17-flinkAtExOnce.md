@@ -26,7 +26,7 @@ keywords: kafka,flink
 
 + invoke - 在事务中提交一条数据。
 + beginTransaction - 在事务开始前，我们在目标文件系统的临时目录中创建一个临时文件。随后，我们可以在处理数据时将数据写入此文件。
-+ preCommit - 在创建事务前，提交前的所有准备操作。一般做 flush，把在缓存中的内容都提交上去，这样再提交时这一轮就提交全了。
++ preCommit - 在预提交阶段，我们刷新文件到存储，关闭文件，不再重新写入。我们还将为属于下一个 checkpoint 的任何后续文件写入启动一个新的事务。一般做 flush。
 + commit - 在提交阶段，我们将预提交阶段的文件原子地移动到真正的目标目录。需要注意的是，这会增加输出数据可见性的延迟。
 + abort - 在中止阶段，我们删除临时文件。
 
@@ -104,7 +104,7 @@ keywords: kafka,flink
 				producer.beginTransaction();
 				return new FlinkKafkaProducer.KafkaTransactionState(producer.getTransactionalId(), 
   ```
-+ preCommit：因为借助了事务，没有操作，但可以看见 AT_LEAST_ONCE 做了 flush，这样至少就有一次了。
++ preCommit：因为借助了事务，没有操作，但可以看见 AT_LEAST_ONCE 做了 flush，这样至少都能这次提交了。
   ``` java
   switch (semantic) {
 			case EXACTLY_ONCE:
