@@ -2102,19 +2102,142 @@ keywords: AcWing 题目
                 node.next.random = node.random==null?null:node.random.next;
                 node = node.next.next;
             }
-            ListNode first = new ListNode(-1);
             node = head;
-            first.next = node.next;
+            ListNode first = node.next;
             node.next = node.next.next;
             node = node.next;
-            ListNode changeNode = first.next;
+            ListNode changeNode = first;
             while(node!=null){
                 changeNode.next = node.next;
                 node.next = node.next.next;
                 node = node.next;
                 changeNode = changeNode.next;
             }
-            return first.next;
+            return first;
+        }
+    }
+    ```
+
+## 49. 二叉搜索树与双向链表
+
++ 题目描述：
+
+    输入一棵二叉搜索树，将该二叉搜索树转换成一个排序的双向链表。
+
+    要求不能创建任何新的结点，只能调整树中结点指针的指向。
+
+    **注意：**
+
+    需要返回双向链表最左侧的节点。
+
++ 解法：
+
+    中序遍历顺序即为链表顺序。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public TreeNode convert(TreeNode root) {
+            if(root==null) return null;
+            //中序遍历即可
+            Stack<TreeNode> stack = new Stack<>();
+            TreeNode node = root;
+            TreeNode left = new TreeNode(-1);
+            TreeNode first = left;
+            while(node!=null||!stack.isEmpty()){
+                while(node!=null){
+                    stack.add(node);
+                    node = node.left;
+                }
+                if(!stack.isEmpty()){
+                    node = stack.pop();
+                    left.right = node;
+                    node.left = left;
+                    left = left.right;
+                    node = node.right;
+                }
+            }
+            TreeNode res = first.right;
+            res.left = null;
+            return res;
+        }
+    }
+    ```
+
+## 50. 序列化二叉树
+
++ 题目描述：
+
+    请实现两个函数，分别用来序列化和反序列化二叉树。
+
+    您需要确保二叉树可以序列化为字符串，并且可以将此字符串反序列化为原始树结构
+
++ 解法：
+
+    前序遍历在复原。必须用“，”分开，防止两位整数。复原时把树拆开成数组后，用一个指针记录下当前到的序列号位置，之后前序遍历恢复就行。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        //前序遍历
+        // Encodes a tree to a single string.
+        String serialize(TreeNode root) {
+            if(root==null) return "#";
+            StringBuilder sb = new StringBuilder();
+            Stack<TreeNode> stack = new Stack<>();
+            TreeNode node = root;
+            while(!stack.isEmpty()||node!=null){
+                while(node!=null){
+                    sb.append(node.val+",");
+                    stack.add(node);
+                    node = node.left;
+                }
+                sb.append("#,");
+                if(!stack.isEmpty()){
+                    node = stack.pop();
+                    node = node.right;
+                }
+            }
+            return sb.toString().substring(0,sb.length()-1);
+        }
+
+        // Decodes your encoded data to tree.
+        TreeNode deserialize(String data) {
+            String[] trees = data.split(",");
+            return helper(trees,new int[]{0});
+            // return new TreeNode(Integer.parseInt(trees[1]));
+        }
+        TreeNode helper(String[] trees, int[] index){
+            if(index[0]>=trees.length) return null;
+            if(trees[index[0]].equals("#")){
+                return null;
+            }
+            TreeNode t = new TreeNode(Integer.parseInt(trees[index[0]]));
+            index[0]++;
+            t.left = helper(trees, index);
+            index[0]++;
+            t.right = helper(trees, index);
+            return t;
         }
     }
     ```

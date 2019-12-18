@@ -142,15 +142,15 @@ keywords: kafka,flink
 
 Kafka 是有事务的，也都分析了。具体调用的时候是这样的：
 
-Checkpoint barrier 是用来分隔每个 Checkpoint 阶段的标记。比如说 Checkpoint 设定的间隔是 1 分钟，则每分钟会往流中发送一个 barrier 以标记数据的不同 Checkpoint 的段。
+[barrier](https://juejin.im/post/5bf93517f265da611510760d) 是用来分隔每个 Checkpoint 阶段的标记。比如说 Checkpoint 设定的间隔是 1 分钟，则每分钟会往流中发送 barrier 以标记数据的不同 Checkpoint 的段以区分进入当前快照和下一个快照。
 
-Checkpoint 由 JobManager 中的 CheckpointCoordinator 负责管理，注入 barrier 后，barrier 每经过一个 operator 会往 backend 做存储（证明这个 checkpoints 的全部已经在此 operator 做完了），如下：
+Checkpoint 由 JobManager 中的 CheckpointCoordinator 负责管理，注入 barrier 后，barrier 每经过一个 operator 会往 backend 做快照存储（证明这个 checkpoints 的全部已经在此 operator 做完了），如下：
 
 ![存储](/images/posts/blog/flinkAtExactlyOnce/2019-07-07-094742.jpg)
 
-当通过 sink 后会做直接做预提交（因为 Kafka 是外部源，如果突然崩了别的内部组件都可以有 checkpoint 恢复到对应状态，但外部组件不能，所以直接要做预提交，但对 Kafka Exactly Once 用事务支持了，仅一次中 pre-commit 就为空了）。
+当通过 sink 后会做直接做预提交，这样之后的数据都会往下一次的 checkpoint 中写。
 
-当检查全部 checkpoint 完成后，就可以通知所有各机器 sink operator 提交了。
+当检查 checkpoint 完成后，就可以通知所有各机器 sink operator 提交了。
 
 ![完毕](/images/posts/blog/flinkAtExactlyOnce/2019-07-07-094810.jpg)
 
