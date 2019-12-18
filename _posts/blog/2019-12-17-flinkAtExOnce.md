@@ -257,11 +257,13 @@ public class StreamingJob {
 
 ## 遇到的问题
 
-1. Kafka 报事务超时
++ Kafka 报事务超时
 
-Kafka broker 将 transaction.max.timeout.ms 设定为 15 分钟，而 Flink 设定为 1 小时。一般事务超时时间肯定也不能像 15 分钟这么小，所以得改一下。
+  Kafka broker 将 transaction.max.timeout.ms 设定为 15 分钟，而 Flink 设定为 1 小时。一般事务超时时间肯定也不能像 15 分钟这么小，所以得改一下。
 
-2. 消费事务要记得加 isolation.level=read_committed，这个坑了我好久，默认是没提交的也能看到的（read_uncommited）。
++ 消费事务要设定只查看提交内容
+
+  isolation.level=read_committed，这个坑了我好久，默认是没提交的也能看到的（read_uncommited）。如果使用控制台的 consumer，注意 property 会被覆盖。
 
 ## 效果
 
