@@ -2241,3 +2241,253 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 51. 数字排列
+
++ 题目描述：
+
+    输入一组数字（可能包含重复数字），输出其所有的排列方式。
+
++ 解法：
+
+    交换字符。循环，依次固定住字符串每个位置，交换后面的字符串。然后再交换固定住的字符串。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public List<List<Integer>> permutation(int[] nums) {
+            List<List<Integer>> res = new LinkedList<>();
+            List<Integer> list = new LinkedList<>();
+            helper(nums,0,res,list);
+            return res;
+        }
+        public void helper(int[] nums,int index,List<List<Integer>> res,List<Integer> list){
+            if(list.size()==nums.length){
+                boolean has = false;
+                for(List<Integer> l:res){
+                    if(l.equals(list)) return;
+                }
+                res.add(new LinkedList<Integer>(list));
+                return;
+            }
+            for(int i = index;i<nums.length;i++){
+                swap(nums,i,index);
+                list.add(nums[index]);
+                helper(nums,index+1,res,list);//固定 index 位，交换后面位
+                swap(nums,index,i);
+                list.remove(list.size()-1);
+            }
+        }
+        public void swap(int[] nums,int a,int b){
+            int temp = nums[a];
+            nums[a] = nums[b];
+            nums[b] = temp;
+        }
+    }
+    ```
+
+## 52. 数组中出现次数超过一半的数字
+
++ 题目描述：
+
+    数组中有一个数字出现的次数超过数组长度的一半，请找出这个数字。
+
+    假设数组非空，并且一定存在满足条件的数字。
+
+    **要求：**
+
+    假设要求只能使用 O(n) 的时间和额外 O(1) 的空间，该怎么做呢？
+
++ 解法：
+
+    最简单的方案，对数组排序，返回中间数字，但超时间了。
+
+    如果多过了一半，那在数组中遍历如果遇到了这个数 +1，不是这个数 -1，数一定不会小于等于 0。
+
+    还可以用快排的方式，partition 返回的 index 是目前保证左小右大的值，因为快排保证比 index 小的都在左边，大的都在右边。所以如果 index 在中间点就是所求值。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int moreThanHalfNum_Solution(int[] nums) {
+            Arrays.sort(nums);
+            return nums[nums.length/2];
+        }
+        // 如果多过了一半，那如果遇到了这个数 +1，不是这个数 -1，数一定不会小于等于 0。
+        public int moreThanHalfNum_Solution2(int[] nums) {
+            int n = 1;
+            int num = nums[0];
+            for(int i=1;i<nums.length;i++){
+                if(nums[i]==num) n++;
+                else n--;
+                if(n==0){
+                    n=1;
+                    num=nums[i];
+                }
+            }
+            n=0;
+            return num;
+        }
+    }
+    ```
+
+## 53. 最小 K 个值
+
++ 题目描述：
+
+    输入n个整数，找出其中最小的k个数。
+
++ 解法：
+
+    可以借助快排的思想，找到快排的 index 为 k-1 时这样左边的值就都是最小的 k 个数了。
+
+    或者可以借助优先队列（最小堆）。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public List<Integer> getLeastNumbers_Solution(int [] input, int k) {
+            List<Integer> list = new LinkedList<>();
+            if(input.length==0){
+                return list;
+            }
+            if(k>=input.length){
+                Arrays.sort(input, 0, k);
+                for(int i=0;i<input.length;i++){
+                    list.add(input[i]);
+                }
+                return list;
+            }
+            //交换到返回的 index 序号是 k，证明他左边的 k-1 个数都比 k 小，即最小的 k 个数。
+            int start = 0;
+            int end = input.length-1;
+            int index = paratitions(input,start,end);
+            while(index!=k-1){ //当返回的序号不是 k，如果大于 k，就在他的左边，小于 k 就在他的右边。
+                if(index>k-1){
+                    end = index-1;
+                    index = paratitions(input,start,end);
+                }else{
+                    start = index+1;
+                    index = paratitions(input,start,end);
+                }
+            }
+            Arrays.sort(input, 0, k);
+            for(int i=0;i<k;i++){
+                list.add(input[i]);
+            }
+            return list;
+        }
+        //把第一个值当临界值，使左边的值都比它小，右边的都比他大。返回的 index 是调整后的第一个值的位置。
+        public int paratitions(int [] input,int start,int end){
+            int num = input[start];
+            while(start<end){
+                while(start<end&&input[end]>num){
+                    end--;
+                }
+                //把 num 看成了空槽，把位置不对的数和空槽交换
+                swap(input,start,end);//现在 end 的位置成空槽了
+                while(start<end&&input[start]<num){
+                    start++;
+                }
+                swap(input,end,start);//现在 start 变成了空槽
+            }
+            return start;//一定返回的是 start，因为最后第一个数在的位置是 start
+        }
+        public void swap(int[] input,int a,int b){
+            int temp = input[a];
+            input[a]=input[b];
+            input[b]=temp;
+        }
+
+        public List<Integer> getLeastNumbers_Solution2(int [] input, int k) {
+            List<Integer> list = new LinkedList<>();
+            if(input.length==0){
+                return list;
+            }
+            if(k>=input.length){
+                Arrays.sort(input, 0, k);
+                for(int i=0;i<input.length;i++){
+                    list.add(input[i]);
+                }
+                return list;
+            }
+            PriorityQueue<Integer> p = new PriorityQueue<>(k);
+            for(int i=0;i<input.length;i++){
+                p.add(input[i]);
+            }
+            for(int i =0;i<k;i++){
+                list.add(p.poll());
+            }
+            return list;
+        }
+    }
+    ```
+
+## 54. 数据流中的中位数
+
++ 题目描述：
+
+    如何得到一个数据流中的中位数？
+
+    如果从数据流中读出奇数个数值，那么中位数就是所有数值排序之后位于中间的数值。
+
+    如果从数据流中读出偶数个数值，那么中位数就是所有数值排序之后中间两个数的平均值。
+
+    **样例：**
+
+    输入：1, 2, 3, 4
+
+    输出：1,1.5,2,2.5
+
+    解释：每当数据流读入一个数据，就进行一次判断并输出当前的中位数。
+
++ 解法：
+
+    两个队列，一个队列放小一半的数，一个放大一半的数。小一半的先出大数，大一半的先出小数。
+
+    分奇偶进数，但要保证进入的数字一定还满足小的都在小队列，大的都在大队列。
+
+    返回的时候这样奇数时从小队列取，偶数取平均值。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        
+        PriorityQueue<Integer> q1 = new PriorityQueue<>((a,b)->b-a);//存小一半的数，先出大的
+        PriorityQueue<Integer> q2 = new PriorityQueue<>();//存大一半的数，先出小的
+        int count=0;
+        
+        public void insert(Integer num) {
+            if(count%2==0){//证明目前里面的数将是奇数了，要把多出来的数字放到 q1 里，这时候要保证小一半里的数都小于大一半里的，所以要比较和大队列里最小的数谁大。
+                if(!q2.isEmpty()&&q2.peek()<num){
+                    int temp = num;
+                    num = q2.poll();
+                    q2.add(temp);
+                }
+                q1.add(num);
+            }else{
+                if(q1.peek()>num){//q1 这时候一定有数了，要让 q1 中的小，所以要比对新数和 q1 中最大的
+                    int temp = num;
+                    num = q1.poll();
+                    q1.add(temp);
+                }
+                q2.add(num);
+            }
+            count++;
+        }
+
+        public Double getMedian() {
+            if(count==0) return -1.0;
+            if(count%2==0){
+                return (q1.peek()+q2.peek())/2.0;
+            }else{
+                return (double)q1.peek();
+            }
+        }
+
+    }
+    ```
