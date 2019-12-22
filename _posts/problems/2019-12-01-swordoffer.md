@@ -2625,3 +2625,50 @@ keywords: AcWing 题目
         }
     }
     ```
+    
+## 58. 把数组排成最小的数
+
++ 题目描述：
+
+    输入一个正整数数组，把数组里所有数字拼接起来排成一个数，打印能拼接出的所有数字中最小的一个。
+
+    例如输入数组[3, 32, 321]，则打印出这3个数字能排成的最小数字321323。
+
+    **示例：**
+
+    输入：[3, 32, 321]
+
+    输出：321323
+
++ 解法：
+
+    对数组排序，利用字符串 compareTo 方法，比较的时候比较两个字符串的拼接。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public String printMinNumber(int[] nums) {
+            //不能用优先队列
+            // PriorityQueue<Integer> q = new PriorityQueue<>((Integer i1,Integer i2)->{
+            //     String s1 = i1+""+i2;//必须是比较两个相加，比如说 123 和 12301 这时如果不想加 123 就在 12301 前面了
+            //     String s2 = i2+""+i1;
+            //     System.out.println(i1.getClass());
+            //     return s1.compareTo(s2);
+            // });
+            LinkedList<Integer> q = new LinkedList<>();
+            for(int num:nums){
+                q.add(num);
+            }
+            Collections.sort(q,(i1,i2)->{
+                String s1 = i1+""+i2;//必须是比较两个相加，比如说 123 和 12301 这时如果不想加 123 就在 12301 前面了
+                String s2 = i2+""+i1;
+                // System.out.println(i1.getClass());
+                return s1.compareTo(s2);
+            });
+            StringBuilder sb = new StringBuilder();
+            q.forEach(e->sb.append(e));
+            return sb.toString();
+        }
+    }
+    ```
