@@ -2491,3 +2491,137 @@ keywords: AcWing 题目
 
     }
     ```
+
+## 55. 连续子数组的最大和
+
++ 题目描述：
+
+    输入一个 非空 整型数组，数组里的数可能为正，也可能为负。
+
+    数组中一个或连续的多个整数组成一个子数组。
+
+    求所有子数组的和的最大值。
+
+    要求时间复杂度为O(n)。
+
+    **样例：**
+
+    输入：[1, -2, 3, 10, -4, 7, 2, -5]
+
+    输出：18
+
++ 解法：
+
+    连续最大到新的数的时候的最大值只可能是它本身或者它本身加上之前的连续数。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int maxSubArray(int[] nums) {
+            if(nums.length==0) return -1;
+            int max = nums[0];
+            int currentMax = nums[0];
+            for(int i=1;i<nums.length;i++){
+                currentMax=Math.max(nums[i],nums[i]+currentMax);
+                max = Math.max(max,currentMax);
+            }
+            return max;
+        }
+    }
+    ```
+
+## 56. 从1到n整数中1出现的次数
+
++ 题目描述：
+
+    输入一个整数n，求从1到n这n个整数的十进制表示中1出现的次数。
+
+    例如输入12，从1到12这些整数中包含“1”的数字有1，10，11和12，其中“1”一共出现了5次。
+
++ 解法：
+
+    从左往右模拟人算。比如 12345 / 12315 就能找到规律。一位一位计算每一位有多少个 1.
+
+    首先记录当前到了第几位，digit 每次乘 10。
+
+    之后比如说到了倒数第二位，数字被分成了三部分 123 4 5。123 是左边的，4 是当前余数，5 是右边值。
+
+    对于左边有可能有 000 1 * 到 122 1 * 共 123*10 种 1。（* 代表 0-9）
+
+    对于右边则要区分当前余数。如果小于 1，则此位没有 1 了。如果等于 1 则有 ### 1 0 到 ### 1 5 共 右边值 +1 个 1。如果大于 1，则有 ### 1 0 到 ### 1 9 即 digit 个 1。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int numberOf1Between1AndN_Solution(int n) {
+            int digit = 1;//现在到的位数
+            int right = 0;//当前这位右边的值
+            int sum = 0;
+            while(n!=0){
+                //算得都仅是这一位的 1 的数量
+                int yushu = n%10;
+                int left = n/10; //当前这位左边的值
+                n=left;
+                //比如 12315 算第一位时，左边 1231，也就有从 00001 到 12301，1231*1 个 1
+                //倒数第二位时也就是左边 123，也就是 0001* 到 1221* 供 123*10 个1
+                sum+=left*digit;
+                //比较倒数第二位。
+                //如果大于 1 如 12345，则要增加 ***10 到 ***19 个 1，即 digit 个 1
+                if(yushu>1){
+                    sum+=digit;
+                }
+                //如果是 1，则要增加12310 - 12315 即右边数 +1 个 1。
+                else if(yushu==1){
+                    sum+=right+1;
+                }
+                //如果到时第二位小于 1，则不可能再有 1 了。
+                right = yushu*digit+right;//下一次右边的值
+                digit*=10;
+            }
+            return sum;
+        }
+    }
+    ```
+
+## 57. 数字序列中某一位的数字
+
++ 题目描述：
+
+    数字以0123456789101112131415…的格式序列化到一个字符序列中。
+
+    在这个序列中，第5位（从0开始计数）是5，第13位是1，第19位是4，等等。
+
+    请写一个函数求任意位对应的数字。
+
++ 解法：
+
+    找出数字处在哪段（几位数）。之后找到跟上一次的位数差了多少个，算出偏移多少个数字的第几位。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int digitAtIndex(int n) {
+            //0-9 10 个数
+            //10-99 90 个数 9*10 一次方
+            //100-999 900 个数 9*10 二次方
+            //1000-9999 9000 个数 9*10三次饭
+            if(n<10) return n;
+            int digit = 2; //下一个该加多少
+            int number = 10; //到目前有多少个位数
+            int current = 1;//当前加到了几次方
+            while(n-number>(long)digit*9*(current*10)){ //一定要谨防溢出
+                number+=digit*9*(current*10);//几位数 * 多少个
+                current*=10;
+                digit++;
+            }
+            int rest = n-number;
+            int num = rest/digit;
+            int chaoguo = rest%digit;
+            int thisNumber = current*10+num;
+            return String.valueOf(thisNumber).charAt(chaoguo)-'0';
+        }
+    }
+    ```
