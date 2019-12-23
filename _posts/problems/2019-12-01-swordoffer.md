@@ -2672,3 +2672,117 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 59. 把数字翻译成字符串
+
++ 题目描述：
+
+    给定一个数字，我们按照如下规则把它翻译为字符串：
+
+    0翻译成”a”，1翻译成”b”，……，11翻译成”l”，……，25翻译成”z”。
+
+    一个数字可能有多个翻译。例如12258有5种不同的翻译，它们分别是”bccfi”、”bwfi”、”bczi”、”mcfi”和”mzi”。
+
+    请编程实现一个函数用来计算一个数字有多少种不同的翻译方法。
+
+    **示例：**
+
+    输入："12258"
+
+    输出：5
+
++ 解法：
+
+    简单的话可以用回溯法，如果连续两位的数小于 25，则可以一次跨两个数。
+
+    第二种方法是动态规划，dp[i] 表示到第 i（比字符串实际 +1）个数有多少可能，递推公式 dp[i] = dp[i-1] + dp[i-2] dp[i-2] 要看是否满足条件，必须是 length+1 因为默认长度为 0 也是一种情况。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getTranslationCount(String s) {
+            if(s.equals("")) return 0;
+            int[] count = new int[1];
+            helper(s, 0, count);
+            return count[0];
+        }
+        public void helper(String s, int index, int[] count){
+            if(index==s.length()){
+                count[0]++;
+                return;
+            }
+            if(index<s.length()-1&&s.charAt(index)!='0'&&Integer.parseInt(s.substring(index,index+2))<26){
+                helper(s, index+2, count);
+            }
+            helper(s, index+1, count);
+        }
+
+        public int getTranslationCount2(String s) {
+            if(s.equals("")){
+                return 0;
+            }
+            char[] cs = s.toCharArray();
+            int[] dp = new int[cs.length+1]; // 递推公式 dp[i] = dp[i-1] + dp[i-2] dp[i-2] 要看是否满足条件，必须是 length+1 因为默认长度为 0 也是一种情况
+            dp[0] = 1;
+            dp[1] = 1;
+            for(int i=1;i<cs.length;i++){
+                dp[i+1] = dp[i];
+                if(cs[i-1]=='1'||(cs[i-1]=='2'&&cs[i]<'6')){
+                    dp[i+1] += dp[i-1];
+                }
+            }
+            return dp[cs.length];
+        }
+    }
+    ```
+
+## 60. 礼物的最大价值
+
++ 题目描述：
+
+    在一个m×n的棋盘的每一格都放有一个礼物，每个礼物都有一定的价值（价值大于0）。
+
+    你可以从棋盘的左上角开始拿格子里的礼物，并每次向右或者向下移动一格直到到达棋盘的右下角。
+
+    给定一个棋盘及其上面的礼物，请计算你最多能拿到多少价值的礼物？
+
+    **示例：**
+
+    输入：  
+    [  
+    [2,3,1],  
+    [1,7,1],  
+    [4,6,1]  
+    ]  
+
+    输出：19
+
+    解释：沿着路径 2→3→7→6→1 可以得到拿到最大价值礼物。
+
++ 解法：
+
+    动态规划，最原始的二维可以写为：dp[i][j] = Math.max(dp[i-1][j],dp[i][j-1])+grid[i][j]
+
+    由于只跟上和左有关，可以简化成一维数组，dp[i] = Math.max(dp[i-1],dp[i])+grid[j][i]
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getMaxValue(int[][] grid) {
+            if(grid.length==0) return 0;
+            int[] dp = new int[grid[0].length]; //递推公式 dp[i] = Math.max(dp[i-1],dp[i])+grid[i][j]，只跟他左边或上边有关，左边即 dp[i-1]，上面是 dp[i]
+            for(int j=0;j<grid.length;j++){
+                for(int i=0;i<grid[0].length;i++){
+                    if(i==0){
+                        dp[0] += grid[j][i];
+                    }else{
+                        dp[i] = Math.max(dp[i-1],dp[i])+grid[j][i];
+                    }
+                }
+            }
+            return dp[grid[0].length-1];
+        }
+    }
+    ```
