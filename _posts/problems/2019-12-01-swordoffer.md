@@ -2786,3 +2786,88 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 61. 最长不含重复字符的子字符串
+
++ 题目描述：
+
+    请从字符串中找出一个最长的不包含重复字符的子字符串，计算该最长子字符串的长度。
+
+    假设字符串中只包含从’a’到’z’的字符。
+
+    **示例：**
+
+    输入："abcabc"
+
+    输出：3
+
++ 解法：
+
+    用一个 26 的数组记录出现的数字上次出现的位置。用一个 index 记录目前最远点到了哪里。如果出现过且在最远点之内，就要更新最远点为出现位置 +1。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int longestSubstringWithoutDuplication(String s) {
+            int[] record = new int[26]; //存储 a 到 z 出没出现过
+            for(int i=0;i<26;i++){
+                record[i]=-1;
+            }
+            char[] cs = s.toCharArray();
+            int maxLength = 0;
+            int index = 0;//目前到最远的指针地址
+            for(int i=0;i<cs.length;i++){
+                char c = cs[i];
+                if(record[c-'a']==-1||record[c-'a']<index){ //后面的判断条件是为了看出现的字符会不会是目前 index 之前的，之前的就相当于没出现过
+                    record[c-'a']=i;
+                }else{
+                    maxLength = Math.max(i-index,maxLength);
+                    index = record[c-'a']+1;
+                    record[c-'a']=i;
+                    
+                }
+            }
+            maxLength = Math.max(cs.length-index,maxLength);
+            return maxLength;
+        }
+    }
+    ```
+
+## 62. 丑数
+
++ 题目描述：
+
+    我们把只包含质因子2、3和5的数称作丑数（Ugly Number）。
+
+    例如6、8都是丑数，但14不是，因为它包含质因子7。
+
+    求第n个丑数的值。
+
++ 解法：
+
+    丑数都是 2、3、5 组成的，也就是说每个丑数对应 2、3、5 的一个 index。找到各自 index 每次都乘 2、3、5 取最小的就是下一个丑数。同时更新最近的 2、3、5 的 index。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getUglyNumber(int n) {
+            int i2 = 0;// i2, i3, i5 表示的是他最近的值在 res 中的 index
+            int i3 = 0;
+            int i5 = 0;
+            int[] res = new int[n];
+            res[0] = 1;
+            int i = 1;
+            while(i<n){
+                // 每个最 index 的值乘 2 3 5 中最小的就是下一个的值
+                int min = Math.min(res[i2]*2,Math.min(res[i3]*3,res[i5]*5));
+                res[i++] = min;
+                while(res[i2]*2<=min) i2++;
+                while(res[i3]*3<=min) i3++;
+                while(res[i5]*5<=min) i5++;
+            }
+            return res[n-1];
+        }
+    }
+    ```
