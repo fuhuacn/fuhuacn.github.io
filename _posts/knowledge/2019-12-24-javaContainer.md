@@ -528,3 +528,198 @@ public V put(K key, V value) {
 }
 ```
 
+HashMap 允许插入键为 null 的键值对。但是因为无法调用 null 的 hashCode() 方法，也就无法确定该键值对的桶下标，只能通过强制指定一个桶下标来存放。HashMap 使用第 0 个桶存放键为 null 的键值对。
+
+``` java
+private V putForNullKey(V value) {
+    for (Entry<K,V> e = table[0]; e != null; e = e.next) {
+        if (e.key == null) {
+            V oldValue = e.value;
+            e.value = value;
+            e.recordAccess(this);
+            return oldValue;
+        }
+    }
+    modCount++;
+    addEntry(0, null, value, 0);
+    return null;
+}
+```
+
+使用链表的头插法，也就是新的键值对插在链表的头部，而不是链表的尾部。
+
+``` java
+void addEntry(int hash, K key, V value, int bucketIndex) {
+    if ((size >= threshold) && (null != table[bucketIndex])) {
+        resize(2 * table.length);
+        hash = (null != key) ? hash(key) : 0;
+        bucketIndex = indexFor(hash, table.length);
+    }
+
+    createEntry(hash, key, value, bucketIndex);
+}
+
+void createEntry(int hash, K key, V value, int bucketIndex) {
+    Entry<K,V> e = table[bucketIndex];
+    // 头插法，链表头部指向新的键值对
+    table[bucketIndex] = new Entry<>(hash, key, value, e);
+    size++;
+}
+```
+
+``` java
+Entry(int h, K k, V v, Entry<K,V> n) {
+    value = v;
+    next = n;
+    key = k;
+    hash = h;
+}
+```
+
+### 4. 确定桶下标
+
+很多操作都需要先确定一个键值对所在的桶下标。
+
+``` java
+int hash = hash(key);
+int i = indexFor(hash, table.length);
+```
+
+#### 4.1 计算 hash 值
+
+``` java
+final int hash(Object k) {
+    int h = hashSeed;
+    if (0 != h && k instanceof String) {
+        return sun.misc.Hashing.stringHash32((String) k);
+    }
+
+    h ^= k.hashCode();
+
+    // This function ensures that hashCodes that differ only by
+    // constant multiples at each bit position have a bounded
+    // number of collisions (approximately 8 at default load factor).
+    h ^= (h >>> 20) ^ (h >>> 12);
+    return h ^ (h >>> 7) ^ (h >>> 4);
+}
+```
+
+``` java
+public final int hashCode() {
+    return Objects.hashCode(key) ^ Objects.hashCode(value);
+}
+```
+
+#### 4.2 取模
+
+令 x = 1<<4，即 x 为 2 的 4 次方，它具有以下性质：
+
+``` 
+x   : 00010000
+x-1 : 00001111
+```
+
+令一个数 y 与 x-1 做与运算，可以去除 y 位级表示的第 4 位以上数：
+
+``` text
+y       : 10110010
+x-1     : 00001111
+y&(x-1) : 00000010
+```
+
+这个性质和 y 对 x 取模效果是一样的：
+
+``` text
+y   : 10110010
+x   : 00010000
+y%x : 00000010
+```
+
+我们知道，位运算的代价比求模运算小的多，因此在进行这种计算时用位运算的话能带来更高的性能。
+
+确定桶下标的最后一步是将 key 的 hash 值对桶个数取模：hash%capacity，如果能保证 capacity **为 2 的 n 次方**，那么就可以将这个操作转换为位运算。
+
+``` java
+static int indexFor(int h, int length) {
+    return h & (length-1);
+}
+```
+
+### 5. 扩容-基本原理
+
+设 HashMap 的 table 长度为 M，需要存储的键值对数量为 N，如果哈希函数满足均匀性的要求，那么每条链表的长度大约为 N/M，因此查找的复杂度为 O(N/M)。
+
+为了让查找的成本降低，应该使 N/M 尽可能小，因此需要保证 M 尽可能大，也就是说 table 要尽可能大。HashMap 采用动态扩容来根据当前的 N 值来调整 M 值，使得空间效率和时间效率都能得到保证。
+
+和扩容相关的参数主要有：capacity、size、threshold 和 load_factor。
+
+| 参数 | 含义 |
+| :--: | :-- |
+| capacity | table 的容量大小，默认为 16。需要注意的是 capacity 必须保证为 2 的 n 次方。这是为了方便移位置取模|
+| size | 键值对数量。 |
+| threshold | size 的临界值，当 size 大于等于 threshold 就必须进行扩容操作。 |
+| loadFactor | 装载因子，table 能够使用的比例，threshold = (int)(capacity* loadFactor)。 |
+
+``` java
+static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+static final int MAXIMUM_CAPACITY = 1 << 30;
+
+static final float DEFAULT_LOAD_FACTOR = 0.75f;
+
+transient Entry[] table;
+
+transient int size;
+
+int threshold;
+
+final float loadFactor;
+
+transient int modCount;
+```
+
+从下面的添加元素代码中可以看出，当需要扩容时，令 capacity 为原来的两倍。
+
+``` java
+void addEntry(int hash, K key, V value, int bucketIndex) {
+    Entry<K,V> e = table[bucketIndex];
+    table[bucketIndex] = new Entry<>(hash, key, value, e);
+    if (size++ >= threshold)
+        resize(2 * table.length);
+}
+```
+
+扩容使用 resize() 实现，需要注意的是，扩容操作同样需要把 oldTable 的所有键值对重新插入 newTable 中，因此这一步是很费时的。
+
+``` java
+void resize(int newCapacity) {
+    Entry[] oldTable = table;
+    int oldCapacity = oldTable.length;
+    if (oldCapacity == MAXIMUM_CAPACITY) {
+        threshold = Integer.MAX_VALUE;
+        return;
+    }
+    Entry[] newTable = new Entry[newCapacity];
+    transfer(newTable);
+    table = newTable;
+    threshold = (int)(newCapacity * loadFactor);
+}
+
+void transfer(Entry[] newTable) {
+    Entry[] src = table;
+    int newCapacity = newTable.length;
+    for (int j = 0; j < src.length; j++) {
+        Entry<K,V> e = src[j];
+        if (e != null) {
+            src[j] = null;
+            do {
+                Entry<K,V> next = e.next;
+                int i = indexFor(e.hash, newCapacity);
+                e.next = newTable[i];
+                newTable[i] = e;
+                e = next;
+            } while (e != null);
+        }
+    }
+}
+```

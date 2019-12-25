@@ -2846,7 +2846,7 @@ keywords: AcWing 题目
 
 + 解法：
 
-    丑数都是 2、3、5 组成的，也就是说每个丑数对应 2、3、5 的一个 index。找到各自 index 每次都乘 2、3、5 取最小的就是下一个丑数。同时更新最近的 2、3、5 的 index。
+    丑数都是 2、3、5 组成的，也就是说每个丑数对应 2、3、5 中的一个 index。找到各自 index 每次都乘 2、3、5 取最小的就是下一个丑数。同时用循环更新最近的 2、3、5 的 index，之后再乘 2、3、5 必有一个是接下来的最小值。
 
 + 代码：
 
@@ -2868,6 +2868,51 @@ keywords: AcWing 题目
                 while(res[i5]*5<=min) i5++;
             }
             return res[n-1];
+        }
+    }
+    ```
+
+## 63. 字符串中第一个只出现一次的字符
+
++ 题目描述：
+
+    在字符串中找出第一个只出现一次的字符。
+
+    如输入"abaccdeff"，则输出b。
+
+    如果字符串中不存在只出现一次的字符，返回#字符。
+
+    **样例：**
+
+    输入："abaccdeff"
+
+    输出：'b'
+
++ 解法：
+
+    第一次遍历用一个 map 存储出现字符和次数，第二次遍历读取存储的数量为 1 的返回。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public char firstNotRepeatingChar(String s) {
+            Map<Character,Integer> map = new HashMap<>();
+            char[] cs = s.toCharArray();
+            for(int i=0;i<cs.length;i++){
+                Integer num = map.get(cs[i]);
+                if(num == null){
+                    num = 0;
+                }
+                num+=1;
+                map.put(cs[i],num);
+            }
+            for(int i=0;i<cs.length;i++){
+                if(map.get(cs[i]) == 1){
+                    return cs[i];
+                }
+            }
+            return '#';
         }
     }
     ```
