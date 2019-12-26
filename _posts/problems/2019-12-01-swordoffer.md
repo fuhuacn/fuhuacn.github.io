@@ -2916,3 +2916,110 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 64. 字符流中第一个只出现一次的字符
+
++ 题目描述：
+
+    请实现一个函数用来找出字符流中第一个只出现一次的字符。
+
+    例如，当从字符流中只读出前两个字符”go”时，第一个只出现一次的字符是’g’。
+
+    当从该字符流中读出前六个字符”google”时，第一个只出现一次的字符是’l’。
+
+    如果当前字符流没有存在出现一次的字符，返回#字符。
+
+    **样例：**
+
+    输入："google"
+
+    输出："ggg#ll"
+
+    解释：每当字符流读入一个字符，就进行一次判断并输出当前的第一个只出现一次的字符。
+
++ 解法：
+
+    用一个 map 存储出现次数，list 存储顺序。没有出现过就加到 map 同时加到 map 里。出现 1 次就再有就从 list 中移出去。
+
+    还有第二种思路是字符最多256个，创建一个 256 大小的数组和一个 index 数字。index 大小代表放进去的顺序。数组默认是 0 如果是 0 也就代表数字没出现过。如果不是 0 代表出现一次，这时再添加时就代表数字出现将不止一次，就把数置为 -2。在找第一个时，寻找最小的正数就可以了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        Map<Character,Integer> map = new HashMap<>();
+        LinkedList<Character> list = new LinkedList<>();
+        //Insert one char from stringstream   
+        public void insert(char ch){
+            Integer num = map.get(ch);
+            if(num==null){
+                list.add(ch);
+                map.put(ch,1);
+            }else if(num==1){
+                list.remove(new Character(ch));
+                map.put(ch,2);
+            }
+        }
+        //return the first appearence once char in current stringstream
+        public char firstAppearingOnce(){
+            if(list.isEmpty()) return '#';
+            return list.peek();
+        }
+    }
+    ```
+
+## 65. 数组中的逆序对
+
++ 题目描述：
+
+    在数组中的两个数字如果前面一个数字大于后面的数字，则这两个数字组成一个逆序对。
+
+    输入一个数组，求出这个数组中的逆序对的总数。
+
+    **样例：**
+
+    输入：[1,2,3,4,5,6,0]
+
+    输出：6
+
++ 解法：
+
+    用归并排序的方法来做。这样分成两半后，每一半都是有序的。当一般中一个数大于另一半中某个数时，这个数后面的所有数也都大于这个数。在完成后最终数组也都排序了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        int res = 0;
+        public int inversePairs(int[] nums) {
+            int[] copys = new int[nums.length];
+            mergeSort(nums, copys, 0, nums.length-1);
+            return res;
+        }
+        public void mergeSort(int[] nums, int[] copys, int start, int end){
+            if(start>=end) return;
+            int mid = start+(end-start)/2;
+            mergeSort(nums, copys, start, mid);
+            mergeSort(nums, copys, mid+1, end);
+            // 到这个地方的时候，start 到 mid 和 mid 到 end 间都有序了。
+            // 两个数先从头比，如果一个数的某个位置比另一半某个位置大了，他后面的所有数字也都大于另一半这个数。
+            int index = start; // 对应 temp 中的 index，因为原数组只是分段有序，先让 copys 有序，再复制。
+            int i = start;
+            int j = mid+1;
+            while(i<=mid && j<=end){
+                if(nums[i]>nums[j]){
+                    copys[index++] = nums[j++];
+                    res+=mid-i+1; // 他后面的数也都比他大
+                }else{
+                    copys[index++] = nums[i++];
+                }
+            }
+            while(i<=mid) copys[index++] = nums[i++];
+            while(j<=end) copys[index++] = nums[j++];
+            while(start<=end){
+                nums[start] = copys[start];
+                start++;
+            }
+        }
+    }
+    ```
