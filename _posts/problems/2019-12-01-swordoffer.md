@@ -3023,3 +3023,66 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 66. 两个链表的第一个公共结点
+
++ 题目描述：
+
+    输入两个链表，找出它们的第一个公共结点。
+
+    当不存在公共节点时，返回空节点。
+
++ 解法：
+
+    先求出两个栈的长度，让长的先走差值，这样汇合点就会同时到达。
+
+    或者都把节点放到两个栈中，找到第一个不相同的节点。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) {
+    *         val = x;
+    *         next = null;
+    *     }
+    * }
+    */
+    class Solution {
+        public ListNode findFirstCommonNode(ListNode headA, ListNode headB) {
+            ListNode nodeA = headA;
+            ListNode nodeB = headB;
+            int countA = 0;
+            int countB = 0;
+            while(nodeA!=null){
+                nodeA = nodeA.next;
+                countA++;
+            }
+            while(nodeB!=null){
+                nodeB = nodeB.next;
+                countB++;
+            }
+            if(countA>countB){
+                int walk = countA-countB;
+                for(int i=0;i<walk;i++){
+                    headA = headA.next;
+                }
+            }else{
+                int walk = countB-countA;
+                for(int i=0;i<walk;i++){
+                    headB = headB.next;
+                }
+            }
+            while(headA!=headB){
+                if(headA==null||headB==null) return null;
+                headA = headA.next;
+                headB = headB.next;
+            }
+            return headA;
+        }
+    }
+    ```
