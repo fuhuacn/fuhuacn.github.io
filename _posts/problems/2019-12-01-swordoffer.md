@@ -2672,3 +2672,417 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 59. 把数字翻译成字符串
+
++ 题目描述：
+
+    给定一个数字，我们按照如下规则把它翻译为字符串：
+
+    0翻译成”a”，1翻译成”b”，……，11翻译成”l”，……，25翻译成”z”。
+
+    一个数字可能有多个翻译。例如12258有5种不同的翻译，它们分别是”bccfi”、”bwfi”、”bczi”、”mcfi”和”mzi”。
+
+    请编程实现一个函数用来计算一个数字有多少种不同的翻译方法。
+
+    **示例：**
+
+    输入："12258"
+
+    输出：5
+
++ 解法：
+
+    简单的话可以用回溯法，如果连续两位的数小于 25，则可以一次跨两个数。
+
+    第二种方法是动态规划，dp[i] 表示到第 i（比字符串实际 +1）个数有多少可能，递推公式 dp[i] = dp[i-1] + dp[i-2] dp[i-2] 要看是否满足条件，必须是 length+1 因为默认长度为 0 也是一种情况。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getTranslationCount(String s) {
+            if(s.equals("")) return 0;
+            int[] count = new int[1];
+            helper(s, 0, count);
+            return count[0];
+        }
+        public void helper(String s, int index, int[] count){
+            if(index==s.length()){
+                count[0]++;
+                return;
+            }
+            if(index<s.length()-1&&s.charAt(index)!='0'&&Integer.parseInt(s.substring(index,index+2))<26){
+                helper(s, index+2, count);
+            }
+            helper(s, index+1, count);
+        }
+
+        public int getTranslationCount2(String s) {
+            if(s.equals("")){
+                return 0;
+            }
+            char[] cs = s.toCharArray();
+            int[] dp = new int[cs.length+1]; // 递推公式 dp[i] = dp[i-1] + dp[i-2] dp[i-2] 要看是否满足条件，必须是 length+1 因为默认长度为 0 也是一种情况
+            dp[0] = 1;
+            dp[1] = 1;
+            for(int i=1;i<cs.length;i++){
+                dp[i+1] = dp[i];
+                if(cs[i-1]=='1'||(cs[i-1]=='2'&&cs[i]<'6')){
+                    dp[i+1] += dp[i-1];
+                }
+            }
+            return dp[cs.length];
+        }
+    }
+    ```
+
+## 60. 礼物的最大价值
+
++ 题目描述：
+
+    在一个m×n的棋盘的每一格都放有一个礼物，每个礼物都有一定的价值（价值大于0）。
+
+    你可以从棋盘的左上角开始拿格子里的礼物，并每次向右或者向下移动一格直到到达棋盘的右下角。
+
+    给定一个棋盘及其上面的礼物，请计算你最多能拿到多少价值的礼物？
+
+    **示例：**
+
+    输入：  
+    [  
+    [2,3,1],  
+    [1,7,1],  
+    [4,6,1]  
+    ]  
+
+    输出：19
+
+    解释：沿着路径 2→3→7→6→1 可以得到拿到最大价值礼物。
+
++ 解法：
+
+    动态规划，最原始的二维可以写为：dp[i][j] = Math.max(dp[i-1][j],dp[i][j-1])+grid[i][j]
+
+    由于只跟上和左有关，可以简化成一维数组，dp[i] = Math.max(dp[i-1],dp[i])+grid[j][i]
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getMaxValue(int[][] grid) {
+            if(grid.length==0) return 0;
+            int[] dp = new int[grid[0].length]; //递推公式 dp[i] = Math.max(dp[i-1],dp[i])+grid[i][j]，只跟他左边或上边有关，左边即 dp[i-1]，上面是 dp[i]
+            for(int j=0;j<grid.length;j++){
+                for(int i=0;i<grid[0].length;i++){
+                    if(i==0){
+                        dp[0] += grid[j][i];
+                    }else{
+                        dp[i] = Math.max(dp[i-1],dp[i])+grid[j][i];
+                    }
+                }
+            }
+            return dp[grid[0].length-1];
+        }
+    }
+    ```
+
+## 61. 最长不含重复字符的子字符串
+
++ 题目描述：
+
+    请从字符串中找出一个最长的不包含重复字符的子字符串，计算该最长子字符串的长度。
+
+    假设字符串中只包含从’a’到’z’的字符。
+
+    **示例：**
+
+    输入："abcabc"
+
+    输出：3
+
++ 解法：
+
+    用一个 26 的数组记录出现的数字上次出现的位置。用一个 index 记录目前最远点到了哪里。如果出现过且在最远点之内，就要更新最远点为出现位置 +1。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int longestSubstringWithoutDuplication(String s) {
+            int[] record = new int[26]; //存储 a 到 z 出没出现过
+            for(int i=0;i<26;i++){
+                record[i]=-1;
+            }
+            char[] cs = s.toCharArray();
+            int maxLength = 0;
+            int index = 0;//目前到最远的指针地址
+            for(int i=0;i<cs.length;i++){
+                char c = cs[i];
+                if(record[c-'a']==-1||record[c-'a']<index){ //后面的判断条件是为了看出现的字符会不会是目前 index 之前的，之前的就相当于没出现过
+                    record[c-'a']=i;
+                }else{
+                    maxLength = Math.max(i-index,maxLength);
+                    index = record[c-'a']+1;
+                    record[c-'a']=i;
+                    
+                }
+            }
+            maxLength = Math.max(cs.length-index,maxLength);
+            return maxLength;
+        }
+    }
+    ```
+
+## 62. 丑数
+
++ 题目描述：
+
+    我们把只包含质因子2、3和5的数称作丑数（Ugly Number）。
+
+    例如6、8都是丑数，但14不是，因为它包含质因子7。
+
+    求第n个丑数的值。
+
++ 解法：
+
+    丑数都是 2、3、5 组成的，也就是说每个丑数对应 2、3、5 中的一个 index。找到各自 index 每次都乘 2、3、5 取最小的就是下一个丑数。同时用循环更新最近的 2、3、5 的 index，之后再乘 2、3、5 必有一个是接下来的最小值。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getUglyNumber(int n) {
+            int i2 = 0;// i2, i3, i5 表示的是他最近的值在 res 中的 index
+            int i3 = 0;
+            int i5 = 0;
+            int[] res = new int[n];
+            res[0] = 1;
+            int i = 1;
+            while(i<n){
+                // 每个最 index 的值乘 2 3 5 中最小的就是下一个的值
+                int min = Math.min(res[i2]*2,Math.min(res[i3]*3,res[i5]*5));
+                res[i++] = min;
+                while(res[i2]*2<=min) i2++;
+                while(res[i3]*3<=min) i3++;
+                while(res[i5]*5<=min) i5++;
+            }
+            return res[n-1];
+        }
+    }
+    ```
+
+## 63. 字符串中第一个只出现一次的字符
+
++ 题目描述：
+
+    在字符串中找出第一个只出现一次的字符。
+
+    如输入"abaccdeff"，则输出b。
+
+    如果字符串中不存在只出现一次的字符，返回#字符。
+
+    **样例：**
+
+    输入："abaccdeff"
+
+    输出：'b'
+
++ 解法：
+
+    第一次遍历用一个 map 存储出现字符和次数，第二次遍历读取存储的数量为 1 的返回。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public char firstNotRepeatingChar(String s) {
+            Map<Character,Integer> map = new HashMap<>();
+            char[] cs = s.toCharArray();
+            for(int i=0;i<cs.length;i++){
+                Integer num = map.get(cs[i]);
+                if(num == null){
+                    num = 0;
+                }
+                num+=1;
+                map.put(cs[i],num);
+            }
+            for(int i=0;i<cs.length;i++){
+                if(map.get(cs[i]) == 1){
+                    return cs[i];
+                }
+            }
+            return '#';
+        }
+    }
+    ```
+
+## 64. 字符流中第一个只出现一次的字符
+
++ 题目描述：
+
+    请实现一个函数用来找出字符流中第一个只出现一次的字符。
+
+    例如，当从字符流中只读出前两个字符”go”时，第一个只出现一次的字符是’g’。
+
+    当从该字符流中读出前六个字符”google”时，第一个只出现一次的字符是’l’。
+
+    如果当前字符流没有存在出现一次的字符，返回#字符。
+
+    **样例：**
+
+    输入："google"
+
+    输出："ggg#ll"
+
+    解释：每当字符流读入一个字符，就进行一次判断并输出当前的第一个只出现一次的字符。
+
++ 解法：
+
+    用一个 map 存储出现次数，list 存储顺序。没有出现过就加到 map 同时加到 map 里。出现 1 次就再有就从 list 中移出去。
+
+    还有第二种思路是字符最多256个，创建一个 256 大小的数组和一个 index 数字。index 大小代表放进去的顺序。数组默认是 0 如果是 0 也就代表数字没出现过。如果不是 0 代表出现一次，这时再添加时就代表数字出现将不止一次，就把数置为 -2。在找第一个时，寻找最小的正数就可以了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        Map<Character,Integer> map = new HashMap<>();
+        LinkedList<Character> list = new LinkedList<>();
+        //Insert one char from stringstream   
+        public void insert(char ch){
+            Integer num = map.get(ch);
+            if(num==null){
+                list.add(ch);
+                map.put(ch,1);
+            }else if(num==1){
+                list.remove(new Character(ch));
+                map.put(ch,2);
+            }
+        }
+        //return the first appearence once char in current stringstream
+        public char firstAppearingOnce(){
+            if(list.isEmpty()) return '#';
+            return list.peek();
+        }
+    }
+    ```
+
+## 65. 数组中的逆序对
+
++ 题目描述：
+
+    在数组中的两个数字如果前面一个数字大于后面的数字，则这两个数字组成一个逆序对。
+
+    输入一个数组，求出这个数组中的逆序对的总数。
+
+    **样例：**
+
+    输入：[1,2,3,4,5,6,0]
+
+    输出：6
+
++ 解法：
+
+    用归并排序的方法来做。这样分成两半后，每一半都是有序的。当一般中一个数大于另一半中某个数时，这个数后面的所有数也都大于这个数。在完成后最终数组也都排序了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        int res = 0;
+        public int inversePairs(int[] nums) {
+            int[] copys = new int[nums.length];
+            mergeSort(nums, copys, 0, nums.length-1);
+            return res;
+        }
+        public void mergeSort(int[] nums, int[] copys, int start, int end){
+            if(start>=end) return;
+            int mid = start+(end-start)/2;
+            mergeSort(nums, copys, start, mid);
+            mergeSort(nums, copys, mid+1, end);
+            // 到这个地方的时候，start 到 mid 和 mid 到 end 间都有序了。
+            // 两个数先从头比，如果一个数的某个位置比另一半某个位置大了，他后面的所有数字也都大于另一半这个数。
+            int index = start; // 对应 temp 中的 index，因为原数组只是分段有序，先让 copys 有序，再复制。
+            int i = start;
+            int j = mid+1;
+            while(i<=mid && j<=end){
+                if(nums[i]>nums[j]){
+                    copys[index++] = nums[j++];
+                    res+=mid-i+1; // 他后面的数也都比他大
+                }else{
+                    copys[index++] = nums[i++];
+                }
+            }
+            while(i<=mid) copys[index++] = nums[i++];
+            while(j<=end) copys[index++] = nums[j++];
+            while(start<=end){
+                nums[start] = copys[start];
+                start++;
+            }
+        }
+    }
+    ```
+
+## 66. 两个链表的第一个公共结点
+
++ 题目描述：
+
+    输入两个链表，找出它们的第一个公共结点。
+
+    当不存在公共节点时，返回空节点。
+
++ 解法：
+
+    先求出两个栈的长度，让长的先走差值，这样汇合点就会同时到达。
+
+    或者都把节点放到两个栈中，找到第一个不相同的节点。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) {
+    *         val = x;
+    *         next = null;
+    *     }
+    * }
+    */
+    class Solution {
+        public ListNode findFirstCommonNode(ListNode headA, ListNode headB) {
+            ListNode nodeA = headA;
+            ListNode nodeB = headB;
+            int countA = 0;
+            int countB = 0;
+            while(nodeA!=null){
+                nodeA = nodeA.next;
+                countA++;
+            }
+            while(nodeB!=null){
+                nodeB = nodeB.next;
+                countB++;
+            }
+            if(countA>countB){
+                int walk = countA-countB;
+                for(int i=0;i<walk;i++){
+                    headA = headA.next;
+                }
+            }else{
+                int walk = countB-countA;
+                for(int i=0;i<walk;i++){
+                    headB = headB.next;
+                }
+            }
+            while(headA!=headB){
+                if(headA==null||headB==null) return null;
+                headA = headA.next;
+                headB = headB.next;
+            }
+            return headA;
+        }
+    }
+    ```
