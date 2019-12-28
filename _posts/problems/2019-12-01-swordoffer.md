@@ -3086,3 +3086,89 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 67. 数字在排序数组中出现的次数
+
++ 题目描述：
+
+    统计一个数字在排序数组中出现的次数。
+
+    例如输入排序数组 [1, 2, 3, 3, 3, 3, 4, 5] 和数字 3，由于 3 在这个数组中出现了 4 次，因此输出 4。
+
++ 解法：
+
+    用二分法分别找到第一个出现的位置（即使找到相等的了让 end 设为 mid 找是否前面还有）和最后一个出现的位置（即使找到相等的了让 start 设为 mid 找是否后面还有）。二分法取中位数时可以注意选择是上取整还是下取整。以防出现 2 3 mid 为 2 这样的死循环。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getNumberOfK(int[] nums, int k) {
+            if(nums.length==0) return 0;
+            int start = 0;
+            int end = nums.length-1;
+            while(start<end){ //找第一个出现的位置
+                int mid = start+(end-start)/2; //这块一定是向下取整，因为底下为 end = mid，这个和底下的方法都仅针对正数（这里序号一定为正数所以可以用）
+                if(nums[mid]>=k){//如果相等，要看看前面还有没有
+                    end = mid;//没有 -1 因为他可能就是第一个，这个地方 end 是不用单独处理的，因为 /2 是向下取整不会出现死循环的。
+                }else{
+                    start = mid+1;
+                }
+            }
+            if(nums[start]!=k) return 0;//证明没有这个数
+            int firstK = start;
+            end = nums.length-1;
+            while(start<end){//找出最后一个出现的位置
+                int mid = end+(start-end)/2; //这块一定是向下取整，因为底下为 start = mid，防止 2 3 mid 为 2 死循环
+                if(nums[mid]<=k){
+                    if(start == mid) break;
+                    start = mid;
+                }else{
+                    end = mid-1;
+                }
+            }
+            return start-firstK+1;
+        }
+    }
+    ```
+
+## 68. 0到n-1中缺失的数字
+
++ 题目描述：
+
+    一个长度为n-1的递增排序数组中的所有数字都是唯一的，并且每个数字都在范围0到n-1之内。
+
+    在范围0到n-1的n个数字中有且只有一个数字不在该数组中，请找出这个数字。
+
+    **解释：**
+
+    输入：[0,1,2,4]
+
+    输出：3
+
++ 解法：
+
+    用二分法找序号和值的关系。如果序号等于值，证明还在后面。如果值大于序号了，说明有缺失数字了，值在前面。最后判断一下结束的地方的值和序号的关系。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getMissingNumber(int[] nums) {
+            if(nums.length==0) return 0;
+            //由于 0-n-1，可以用二分法对比值和序号
+            int start = 0;
+            int end = nums.length-1;
+            while(start<end){
+                int mid = start + (end-start)/2;
+                if(nums[mid]==mid){
+                    start = mid+1;
+                }else{
+                    end = mid-1;
+                }
+            }
+            if(nums[start]==start) return start+1;
+            return start;
+        }
+    }
+    ```
