@@ -2649,7 +2649,7 @@ keywords: AcWing 题目
     ``` java
     class Solution {
         public String printMinNumber(int[] nums) {
-            //不能用优先队列
+            //优先队列时，底下不能用 forEach lambda 表达式。
             // PriorityQueue<Integer> q = new PriorityQueue<>((Integer i1,Integer i2)->{
             //     String s1 = i1+""+i2;//必须是比较两个相加，比如说 123 和 12301 这时如果不想加 123 就在 12301 前面了
             //     String s2 = i2+""+i1;
