@@ -3140,7 +3140,7 @@ keywords: AcWing 题目
 
     在范围0到n-1的n个数字中有且只有一个数字不在该数组中，请找出这个数字。
 
-    **解释：**
+    **示例：**
 
     输入：[0,1,2,4]
 
@@ -3169,6 +3169,100 @@ keywords: AcWing 题目
             }
             if(nums[start]==start) return start+1;
             return start;
+        }
+    }
+    ```
+
+## 69. 数组中数值和下标相等的元素
+
++ 题目描述：
+
+    假设一个单调递增的数组里的每个元素都是整数并且是唯一的。
+
+    请编程实现一个函数找出数组中任意一个数值等于其下标的元素。
+
+    例如，在数组[-3, -1, 1, 3, 5]中，数字3和它的下标相等。
+
+    **示例：**
+
+    输入：[-3, -1, 1, 3, 5]
+
+    输出：3
+
++ 解法：
+
+    二分法，由于数组具有递增特性，如果原数比他序号小，肯定就在右边。数比序号大，证明在左边。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getNumberSameAsIndex(int[] nums) {
+            //二分法，递增，找标号等就可以了
+            int start = 0;
+            int end = nums.length-1;
+            while(start<end){
+                // if(nums[start] == start) return start;
+                int mid = start+(end-start)/2;
+                if(nums[mid]<mid){
+                    start = mid+1;
+                }else if(nums[mid]>mid){
+                    end = mid-1;
+                }else{
+                    return mid;
+                }
+            }
+            if(nums[start]==start) return start; // 一定要这步判断，因为循环中都是 +1 -1 有可能会相等情况下跳出
+            return -1;
+        }
+    }
+    ```
+
+## 70. 二叉搜索树的第k个结点
+
++ 题目描述：
+
+    给定一棵二叉搜索树，请找出其中的第k小的结点。
+
+    你可以假设树和k都存在，并且1≤k≤树的总结点数。
+
+
++ 解法：
+
+    中序遍历。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public TreeNode kthNode(TreeNode root, int k) {
+            //中序遍历
+            int i=0;
+            Stack<TreeNode> stack = new Stack<>();
+            while(root!=null||!stack.isEmpty()){
+                while(root!=null){
+                    stack.add(root);
+                    root = root.left;
+                }
+                if(!stack.isEmpty()){
+                    i++;
+                    root = stack.pop();
+                    if(i==k){
+                        return root;
+                    }
+                    root = root.right;
+                }
+            }
+            return null;
         }
     }
     ```

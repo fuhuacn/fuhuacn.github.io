@@ -791,3 +791,42 @@ static final int tableSizeFor(int cap) {
 - HashMap 可以插入键为 null 的 Entry。
 - HashMap 的迭代器是 fail-fast 迭代器。
 - HashMap 不能保证随着时间的推移 Map 中的元素次序是不变的。
+
+## ConcurrentHashMap
+
+### 1. 存储结构
+
+![ConcurrentHashMap](/images/posts/knowledge/javaContainer/conhashmap.png)
+
+``` java
+static final class HashEntry<K,V> {
+    final int hash;
+    final K key;
+    volatile V value;
+    volatile HashEntry<K,V> next;
+}
+```
+
+ConcurrentHashMap 和 HashMap 实现上类似，最主要的差别是 ConcurrentHashMap 采用了分段锁（Segment），每个分段锁维护着几个桶（HashEntry），多个线程可以同时访问不同分段锁上的桶，从而使其并发度更高（并发度就是 Segment 的个数）。
+
+Segment 继承自 ReentrantLock。
+
+``` java
+static final class Segment<K,V> extends ReentrantLock implements Serializable {
+
+    private static final long serialVersionUID = 2249069246763182397L;
+
+    static final int MAX_SCAN_RETRIES =
+        Runtime.getRuntime().availableProcessors() > 1 ? 64 : 1;
+
+    transient volatile HashEntry<K,V>[] table;
+
+    transient int count;
+
+    transient int modCount;
+
+    transient int threshold;
+
+    final float loadFactor;
+}
+```
