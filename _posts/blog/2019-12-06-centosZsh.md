@@ -6,7 +6,7 @@ description: Centos 6 改 Zsh
 keywords: spark,yarn
 ---
 
-由于长时间在实验室的虚拟机中 SSH 登录各种机器，所以需要一个记录命令的，今天有时间便把这台机器也改成了 zsh。下面是最终图：
+由于长时间在实验室的虚拟机中 SSH 登录各种机器，所以今天有时间便把这台机器也改成了 zsh。下面是最终图：
 
 ![zsh](/images/posts/blog/zsh/WX20191206-231254.png)
 

@@ -5,7 +5,7 @@ categories: Blogs
 description: Spark Job、Stage、Task关系
 keywords: Spark
 ---
-Spark 中的 Job、Stage、Task 关系之前一直不是很清晰，今天研究了一下，主要参考[文档](https://www.jlpyyf.com/article/22)
+Spark 中的 Job、Stage、Task 关系之前一直不是很清晰，今天研究了一下，主要参考[参考](https://www.jlpyyf.com/article/22)
 
 这里拿一个简单的 wordcount 作为例子。代码如下：
 

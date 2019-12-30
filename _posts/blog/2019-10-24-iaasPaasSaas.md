@@ -5,7 +5,8 @@ categories: Blogs
 description: 一张图说明Iaas，PaaS和Saas的区别
 keywords: IaaS,PaaS,SaaS
 ---
-毕竟自己也算研究云计算的，经常有时候被学弟问起IaaS，PaaS，SaaS三者的区别是什么，每次解释一大长串但提问者也没太搞懂，今天偶然间看微信公众号，看到了 CloudBest 写的[《你是真的了解云计算吗》](https://mp.weixin.qq.com/s/6twoopgsm5SPsKrkcsaxRA)这篇文章，其中有一张图非常清楚的解释了三者的区别，特贴在此记录一下。
+
+偶然间看微信公众号，看到了 CloudBest 写的[《你是真的了解云计算吗》](https://mp.weixin.qq.com/s/6twoopgsm5SPsKrkcsaxRA)，其中有一张图非常清楚的解释了三者的区别。
 
 ![区别](/images/posts/knowledge/iaaspaassaas/640.jpeg)
 

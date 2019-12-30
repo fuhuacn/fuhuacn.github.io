@@ -6,7 +6,7 @@ description: 讲述 Scala 中 Option
 keywords: scala,option
 ---
 
-之前一直在 scala 和 Java 混合编程，没时间体会 Option 的用法，今天总结一下。汇总于[知乎](https://www.zhihu.com/question/59945107)。
+汇总于[知乎](https://www.zhihu.com/question/59945107)。
 
 ## Option，None，Some 的关系
 
