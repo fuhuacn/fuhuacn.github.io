@@ -794,6 +794,8 @@ static final int tableSizeFor(int cap) {
 
 ## ConcurrentHashMap
 
+以下先是对 java 1.7 中模式进行介绍：
+
 ### 1. 存储结构
 
 ![ConcurrentHashMap](/images/posts/knowledge/javaContainer/conhashmap.png)
@@ -812,6 +814,10 @@ ConcurrentHashMap 和 HashMap 实现上类似，最主要的差别是 Concurrent
 Segment 继承自 ReentrantLock。
 
 ``` java
+final Segment<K,V>[] segments;
+```
+
+``` java
 static final class Segment<K,V> extends ReentrantLock implements Serializable {
 
     private static final long serialVersionUID = 2249069246763182397L;
@@ -828,5 +834,343 @@ static final class Segment<K,V> extends ReentrantLock implements Serializable {
     transient int threshold;
 
     final float loadFactor;
+}
+```
+
+默认的并发级别为 16，也就是说默认创建 16 个 Segment。
+
+``` java
+static final int DEFAULT_CONCURRENCY_LEVEL = 16;
+```
+
+### 2. size 操作
+
+每个 Segment 维护了一个 count 变量来统计该 Segment 中的键值对个数。
+
+``` java
+/**
+ * The number of elements. Accessed only either within locks
+ * or among other volatile reads that maintain visibility.
+ */
+transient int count;
+```
+
+在执行 size 操作时，需要遍历所有 Segment 然后把 count 累计起来。
+
+ConcurrentHashMap 在执行 size 操作时先尝试不加锁，如果连续两次不加锁操作得到的结果一致，那么可以认为这个结果是正确的。
+
+尝试次数使用 RETRIES_BEFORE_LOCK 定义，该值为 2，retries 初始值为 -1，因此尝试次数为 3。
+
+如果尝试的次数超过 3 次，就需要对每个 Segment 加锁。
+
+``` java
+/**
+ * Number of unsynchronized retries in size and containsValue
+ * methods before resorting to locking. This is used to avoid
+ * unbounded retries if tables undergo continuous modification
+ * which would make it impossible to obtain an accurate result.
+ */
+static final int RETRIES_BEFORE_LOCK = 2;
+
+public int size() {
+    // Try a few times to get accurate count. On failure due to
+    // continuous async changes in table, resort to locking.
+    final Segment<K,V>[] segments = this.segments;
+    int size;
+    boolean overflow; // true if size overflows 32 bits
+    long sum;         // sum of modCounts
+    long last = 0L;   // previous sum
+    int retries = -1; // first iteration isn't retry
+    try {
+        for (;;) {
+            // 超过尝试次数，则对每个 Segment 加锁
+            if (retries++ == RETRIES_BEFORE_LOCK) {
+                for (int j = 0; j < segments.length; ++j)
+                    ensureSegment(j).lock(); // force creation
+            }
+            sum = 0L;
+            size = 0;
+            overflow = false;
+            for (int j = 0; j < segments.length; ++j) {
+                Segment<K,V> seg = segmentAt(segments, j);
+                if (seg != null) {
+                    sum += seg.modCount;
+                    int c = seg.count;
+                    if (c < 0 || (size += c) < 0)
+                        overflow = true;
+                }
+            }
+            // 连续两次得到的结果一致，则认为这个结果是正确的
+            if (sum == last)
+                break;
+            last = sum;
+        }
+    } finally {
+        if (retries > RETRIES_BEFORE_LOCK) {
+            for (int j = 0; j < segments.length; ++j)
+                segmentAt(segments, j).unlock();
+        }
+    }
+    return overflow ? Integer.MAX_VALUE : size;
+}
+```
+
+### 3. JDK 1.8 的改动
+
+JDK 1.7 使用分段锁机制来实现并发更新操作，核心类为 Segment，它继承自重入锁 ReentrantLock，并发度与 Segment 数量相等。
+
+JDK 1.8 使用了 CAS 操作来支持更高的并发度，在 CAS 操作失败时使用内置锁 synchronized。
+
+并且 JDK 1.8 的实现也在链表过长时会转换为红黑树。
+
+#### put() 方法
+
+**JDK1.7中的实现：**
+
+ConCurrentHashMap 和 HashMap 的put()方法实现基本类似，所以主要讲一下为了实现并发性，ConCurrentHashMap 1.7 有了什么改变
+
+- 需要定位 2 次 （segments[i]，segment中的table[i]）
+由于引入segment的概念，所以需要
+
+  1. 先通过key的 rehash值的高位 和 segments数组大小-1 相与得到在 segments中的位置
+  2. 然后在通过 key的rehash值 和 table数组大小-1 相与得到在table中的位置
+
+- 没获取到 segment锁的线程，没有权力进行put操作，不是像HashTable一样去挂起等待，而是会去做一下put操作前的准备：
+
+  1. table[i] 的位置（你的值要 put 到哪个桶中）
+  2. 通过首节点 first 遍历链表找有没有相同 key
+  3. 在进行 1、2 的期间还不断自旋获取锁，超过 64 次线程挂起！
+
+**JDK1.8中的实现：**
+
+- 先拿到根据 rehash值 定位，拿到table[i]的 首节点first，然后：
+
+  1. 如果为 null ，通过 CAS 的方式把 value put进去
+  2. 如果非null ，并且 first.hash == -1 ，说明其他线程在扩容，参与一起扩容
+  3. 如果非null ，并且 first.hash != -1 ，Synchronized锁住 first节点，判断是链表还是红黑树，遍历插入。
+
+#### get() 方法
+
+**JDK1.7中的实现：**
+
+- 由于变量 value 是由 volatile 修饰的，java内存模型中的 happen before 规则保证了 对于 volatile 修饰的变量始终是 写操作 先于 读操作 的，并且还有 volatile 的 内存可见性 保证修改完的数据可以马上更新到主存中，所以能保证在并发情况下，读出来的数据是最新的数据。
+
+- 如果get()到的是null值才去加锁。
+
+**JDK1.8中的实现：**
+
+- 与 1.7 相同。
+
+#### resize() 方法
+
+**JDK1.7中的实现：**
+
+跟HashMap的 resize() 没太大区别，都是在 put() 元素时去做的扩容，所以在1.7中的实现是获得了锁之后，在单线程中去做扩容（1.new个2倍数组 2.遍历old数组节点搬去新数组）。
+
+**JDK1.8中的实现：**
+
+jdk1.8的扩容支持并发迁移节点，从old数组的尾部开始，如果该桶被其他线程处理过了，就创建一个 ForwardingNode 放到该桶的首节点，hash值为 -1，其他线程判断hash值为-1后就知道该桶被处理过了。
+
+#### 计算size
+
+**JDK1.7中的实现：**
+
+- 先采用不加锁的方式，计算两次，如果两次结果一样，说明是正确的，返回。
+- 如果两次结果不一样，则把所有 segment 锁住，重新计算所有 segment的 Count 的和
+
+**JDK1.8中的实现：**
+
+由于没有segment的概念，所以只需要用一个 baseCount 变量来记录ConcurrentHashMap 当前 节点的个数。
+
+1. 先尝试通过CAS 修改 baseCount
+2. 如果多线程竞争激烈，某些线程CAS失败，那就CAS尝试将 CELLSBUSY 置1，成功则可以把 baseCount变化的次数 暂存到一个数组 counterCells 里，后续数组 counterCells 的值会加到 baseCount 中。
+3. 如果 CELLSBUSY 置1失败又会反复进行CASbaseCount 和 CAScounterCells数组
+
+## LinkedHashMap
+
+**作用是让 HashMap 有顺序。**
+
+### 存储结构
+
+继承自 HashMap，因此具有和 HashMap 一样的快速查找特性。
+
+``` java
+public class LinkedHashMap<K,V> extends HashMap<K,V> implements Map<K,V>
+```
+
+内部维护了一个双向链表，用来维护插入顺序或者 LRU 顺序。
+
+``` java
+/**
+ * The head (eldest) of the doubly linked list.
+ */
+transient LinkedHashMap.Entry<K,V> head;
+
+/**
+ * The tail (youngest) of the doubly linked list.
+ */
+transient LinkedHashMap.Entry<K,V> tail;
+```
+
+accessOrder 决定了顺序，默认为 false，此时维护的是插入顺序。true 为访问顺序（LRU）。
+
+``` java
+final boolean accessOrder;
+```
+
+LinkedHashMap 最重要的是以下用于维护顺序的函数，它们会在 put、get 等方法中调用。
+
+``` java
+void afterNodeAccess(Node<K,V> p) { }
+void afterNodeInsertion(boolean evict) { }
+```
+
+### afterNodeAccess()
+
+当一个节点被访问时，如果 accessOrder 为 true，则会将该节点移到链表尾部。也就是说指定为 LRU 顺序之后，在每次访问一个节点时，会将这个节点移到链表尾部，保证链表尾部是最近访问的节点，那么链表首部就是最近最久未使用的节点。
+
+``` java
+void afterNodeAccess(Node<K,V> e) { // move node to last
+    LinkedHashMap.Entry<K,V> last;
+    if (accessOrder && (last = tail) != e) {
+        LinkedHashMap.Entry<K,V> p =
+            (LinkedHashMap.Entry<K,V>)e, b = p.before, a = p.after;
+        p.after = null;
+        if (b == null)
+            head = a;
+        else
+            b.after = a;
+        if (a != null)
+            a.before = b;
+        else
+            last = b;
+        if (last == null)
+            head = p;
+        else {
+            p.before = last;
+            last.after = p;
+        }
+        tail = p;
+        ++modCount;
+    }
+}
+```
+
+### afterNodeInsertion()
+
+在 put 等操作之后执行，当 removeEldestEntry() 方法返回 true 时会移除最晚的节点，也就是链表首部节点 first。
+
+evict 只有在构建 Map 的时候才为 false，在这里为 true。
+
+``` java
+void afterNodeInsertion(boolean evict) { // possibly remove eldest
+    LinkedHashMap.Entry<K,V> first;
+    if (evict && (first = head) != null && removeEldestEntry(first)) {
+        K key = first.key;
+        removeNode(hash(key), key, null, false, true);
+    }
+}
+```
+
+removeEldestEntry() 默认为 false，如果需要让它为 true，需要继承 LinkedHashMap 并且覆盖这个方法的实现，这在实现 LRU 的缓存中特别有用，通过移除最近最久未使用的节点，从而保证缓存空间足够，并且缓存的数据都是热点数据。下面的 LRU 缓存就是实现这个方法。
+
+``` java
+protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
+    return false;
+}
+```
+
+### LRU 缓存
+
+以下是使用 LinkedHashMap 实现的一个 LRU 缓存：
+
+- 设定最大缓存空间 MAX_ENTRIES 为 3；
+- 使用 LinkedHashMap 的构造函数将 accessOrder 设置为 true，开启 LRU 顺序；
+- 覆盖 removeEldestEntry() 方法实现，在节点多于 MAX_ENTRIES 就会将最近最久未使用的数据移除。
+
+``` java
+class LRUCache<K, V> extends LinkedHashMap<K, V> {
+    private static final int MAX_ENTRIES = 3;
+
+    // 复写了方法，当大于最大数量时返回 true
+    protected boolean removeEldestEntry(Map.Entry eldest) {
+        return size() > MAX_ENTRIES;
+    }
+
+    LRUCache() {
+        // public LinkedHashMap(int initialCapacity, float loadFactor, boolean accessOrder) 
+        super(MAX_ENTRIES, 0.75f, true);
+    }
+}
+```
+
+``` java
+public static void main(String[] args) {
+    LRUCache<Integer, String> cache = new LRUCache<>();
+    cache.put(1, "a");
+    cache.put(2, "b");
+    cache.put(3, "c");
+    cache.get(1);
+    cache.put(4, "d");
+    System.out.println(cache.keySet());
+    // [3, 1, 4]
+}
+```
+
+## WeakHashMap
+
+### 存储结构
+
+WeakHashMap 的 Entry 继承自 WeakReference，被 WeakReference 关联的对象在下一次垃圾回收时会被回收。
+
+WeakHashMap 主要用来实现缓存，通过使用 WeakHashMap 来引用缓存对象，由 JVM 对这部分缓存进行回收。
+
+``` java
+private static class Entry<K,V> extends WeakReference<Object> implements Map.Entry<K,V>
+```
+
+### ConcurrentCache
+
+Tomcat 中的 ConcurrentCache 使用了 WeakHashMap 来实现缓存功能。
+
+ConcurrentCache 采取的是分代缓存：
+
+- 经常使用的对象放入 eden 中，eden 使用 ConcurrentHashMap 实现，不用担心会被回收（伊甸园）；
+- 不常用的对象放入 longterm，longterm 使用 WeakHashMap 实现，这些老对象会被垃圾收集器回收。
+- 当调用 get() 方法时，会先从 eden 区获取，如果没有找到的话再到 longterm 获取，当从 longterm 获取到就把对象放入 eden 中，从而保证经常被访问的节点不容易被回收。
+- 当调用 put() 方法时，如果 eden 的大小超过了 size，那么就将 eden 中的所有对象都放入 longterm 中，利用虚拟机回收掉一部分不经常使用的对象。
+
+``` java
+public final class ConcurrentCache<K, V> {
+
+    private final int size;
+
+    private final Map<K, V> eden;
+
+    private final Map<K, V> longterm;
+
+    public ConcurrentCache(int size) {
+        this.size = size;
+        this.eden = new ConcurrentHashMap<>(size);
+        this.longterm = new WeakHashMap<>(size);
+    }
+
+    public V get(K k) {
+        V v = this.eden.get(k);
+        if (v == null) {
+            v = this.longterm.get(k);
+            if (v != null)
+                this.eden.put(k, v);
+        }
+        return v;
+    }
+
+    public void put(K k, V v) {
+        if (this.eden.size() >= size) {
+            this.longterm.putAll(this.eden);
+            this.eden.clear();
+        }
+        this.eden.put(k, v);
+    }
 }
 ```

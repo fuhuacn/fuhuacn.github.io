@@ -3266,3 +3266,145 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 71. 二叉树的深度
+
++ 题目描述：
+
+    输入一棵二叉树的根结点，求该树的深度。
+
+    从根结点到叶结点依次经过的结点（含根、叶结点）形成树的一条路径，最长路径的长度为树的深度。
+
+
++ 解法：
+
+    递归至最后，取两边最大值。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public int treeDepth(TreeNode root) {
+            if(root==null) return 0;
+            return 1+Math.max(treeDepth(root.left),treeDepth(root.right));
+        }
+    }
+    ```
+
+## 72. 平衡二叉树
+
++ 题目描述：
+
+    输入一棵二叉树的根结点，判断该树是不是平衡二叉树。
+
+    如果某二叉树中任意结点的左右子树的深度相差不超过1，那么它就是一棵平衡二叉树。
+    
+    规定空树也是一棵平衡二叉树。
+
++ 解法：
+
+    左右子树计算深度，比较左右深度差。
+
+    把算是否平衡的的放到计算深度里，这样不会重复计算。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        boolean balanced = true;
+        public boolean isBalanced(TreeNode root) {
+            if(root==null) return true;
+            depth(root);
+            return balanced;
+        }
+        public int depth(TreeNode root){
+            if(root==null){
+                return 0;
+            }
+            int left = depth(root.left);
+            int right = depth(root.right);
+            if(left-right>1||right-left>1){
+                balanced = false;
+            }
+            return 1+Math.max(left,right);
+        }
+    }
+    ```
+
+## 73. 数组中只出现一次的两个数字
+
++ 题目描述：
+
+    一个整型数组里除了两个数字之外，其他的数字都出现了两次。
+
+    请写程序找出这两个只出现一次的数字。
+
+    你可以假设这两个数字一定存在。
+
++ 解法：
+
+    因为有两个只出现一次的数，如果能把数组分成两半，每半都是相同的数字外加一个只出现一次的。
+
+    所以可以先将全部数做异或，这样的结果就是两个只出现一次的数的异或结果。这时找这个结果为 1 的任意一位。证明这一位这两个数不同。所以可以将所有的数根据这一位分组。依次实现了每一组数相同数都在一块，而不同数分开了。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public int[] findNumsAppearOnce(int[] nums) {
+            int res1 = nums[0];
+            for(int i=1;i<nums.length;i++){
+                res1^=nums[i];
+            }
+            LinkedList<Integer> l1 = new LinkedList<>();
+            LinkedList<Integer> l2 = new LinkedList<>();
+            int move = 0;
+            while((res1&1)==0){ // 找第几位是 1。这样这一位两个只有一次的数这一位是不同的。
+                move++;
+                res1>>=1;
+            }
+            for(int num:nums){
+                if(((num>>move)&1)==1){
+                    l1.add(num);
+                }else{
+                    l2.add(num);
+                }
+            }
+            int[] res = new int[2];
+            while(!l1.isEmpty()){
+                res[0]^=l1.poll();
+            }
+            while(!l2.isEmpty()){
+                res[1]^=l2.poll();
+            }
+            return res;
+        }
+    }
+    ```
