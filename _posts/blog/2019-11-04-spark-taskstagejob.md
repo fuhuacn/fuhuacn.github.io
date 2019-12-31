@@ -1,8 +1,8 @@
 ---
 layout: post
-title: Spark Job、Task、Stage关系
+title: Spark Job、Stage、Task 关系
 categories: Blogs
-description: Spark Job、Stage、Task关系
+description: Spark Job、Task、Stage 关系
 keywords: Spark
 ---
 Spark 中的 Job、Stage、Task 关系之前一直不是很清晰，今天研究了一下，主要参考[参考](https://www.jlpyyf.com/article/22)

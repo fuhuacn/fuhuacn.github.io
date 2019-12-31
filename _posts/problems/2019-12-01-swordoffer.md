@@ -3408,3 +3408,40 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 74. 数组中唯一只出现一次的数字
+
++ 题目描述：
+
+    在一个数组中除了一个数字只出现一次之外，其他数字都出现了三次。
+
+    请找出那个只出现一次的数字。
+
+    你可以假设满足条件的数字一定存在。
+
++ 解法：
+
+    三个数相同所以把每位都加起来。除以三后剩下余 1 的就是只出现一次的数。所以用一个 32 位数组保存每位总和，复原时除以 3 移位就可以了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int findNumberAppearingOnce(int[] nums) {
+            int[] three = new int[32];//int 4 个字节，最多 32 位
+            for(int i=0;i<nums.length;i++){
+                int thisNumber = 0;
+                for(int j=0;j<32;j++){
+                    int num = nums[i]>>j;
+                    three[j] += num&1;
+                }
+            }
+            int res = 0;
+            for(int i=31;i>=0;i--){
+                res<<=1;
+                res+=(three[i]%3);
+            }
+            return res;
+        }
+    }
+    ```
