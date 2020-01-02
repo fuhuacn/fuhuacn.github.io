@@ -3557,3 +3557,116 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 77. 翻转单词顺序
+
++ 题目描述：
+
+    输入一个英文句子，翻转句子中单词的顺序，但单词内字符的顺序不变。
+
+    为简单起见，标点符号和普通字母一样处理。
+
+    例如输入字符串"I am a student."，则输出"student. a am I"。
+
+    **事例：**
+
+    输入："I am a student."
+
+    输出："student. a am I"
+
++ 解法：
+
+    拿 StringBuilder 拼。注意前后空格。
+
+    第二种做法是先把整个字符串翻转，然后再把每个单词翻转（找到空格就翻转）。翻转就是双指针前后换。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public String reverseWords(String s) {
+            if(s.equals("")) return "";
+            String[] ss = s.split(" ");
+            StringBuilder sb = new StringBuilder();
+            if(s.substring(s.length()-1).equals(" ")){
+                sb.append(" ");
+            }
+            for(int i=ss.length-1;i>=0;i--){
+                sb.append(ss[i]+" ");
+            }
+            if(!s.substring(0,1).equals(" ")){
+                sb.deleteCharAt(sb.length()-1);
+            }
+            return sb.toString();
+        }
+
+        public String reverseWords2(String s) {
+            char[] cs = s.toCharArray();
+            swap(cs,0,cs.length-1);
+            for(int i=0;i<cs.length;i++){
+                int j = i;
+                while(j<cs.length&&cs[j]!=' '){
+                    j++;
+                }
+                swap(cs,i,j-1);
+                i=j;
+            }
+            return new String(cs);
+        }
+        public void swap(char[] cs,int start, int end){
+            for(int i=start,j=end;i<j;i++,j--){
+                char temp = cs[i];
+                cs[i] = cs[j];
+                cs[j] = temp;
+            }
+        }
+    }
+    ```
+
+## 78. 左旋转字符串
+
++ 题目描述：
+
+    字符串的左旋转操作是把字符串前面的若干个字符转移到字符串的尾部。
+
+    请定义一个函数实现字符串左旋转操作的功能。
+
+    比如输入字符串"abcdefg"和数字2，该函数将返回左旋转2位得到的结果"cdefgab"。
+
+    **事例：**
+
+    输入："abcdefg" , n=2
+
+    输出："cdefgab"
+
++ 解法：
+
+    最简单办法 substring 就可以了。但这种方法会耗掉 O(n) 的空间。
+
+    同样可以使用翻转的方法。abcde 挪 2 位是 cdeab，翻转后是 edcba。可以看出全部翻转后，再把前 n-k 和后 k 位分别翻转就可以了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public String leftRotateString(String str,int n) {
+            return str.substring(n)+str.substring(0,n);
+        }
+        
+        public String leftRotateString(String str,int n) {
+            char[] cs = str.toCharArray();
+            swap(cs,0,cs.length-1);
+            // abcde edcba n=5 2 位 cdeab
+            swap(cs,0,cs.length-n-1);
+            swap(cs,cs.length-n,cs.length-1);
+            return new String(cs);
+        }
+        public void swap(char[] cs,int start, int end){
+            for(int i=start,j=end;i<j;i++,j--){
+                char temp = cs[i];
+                cs[i] = cs[j];
+                cs[j] = temp;
+            }
+        }
+    }
+    ```
