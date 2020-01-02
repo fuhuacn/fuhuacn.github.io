@@ -811,7 +811,7 @@ static final class HashEntry<K,V> {
 
 ConcurrentHashMap 和 HashMap 实现上类似，最主要的差别是 ConcurrentHashMap 采用了分段锁（Segment），每个分段锁维护着几个桶（HashEntry），多个线程可以同时访问不同分段锁上的桶，从而使其并发度更高（并发度就是 Segment 的个数）。
 
-Segment 继承自 ReentrantLock。
+Segment 继承自 ReentrantLock。所以 ConcurrentHashMap 在 J.U.C（java.util.concurrent）内，AQS 也是核心。
 
 ``` java
 final Segment<K,V>[] segments;
@@ -917,9 +917,11 @@ public int size() {
 
 ### 3. JDK 1.8 的改动
 
+[更多详细内容。](https://www.cnblogs.com/yangfeiORfeiyang/p/9694383.html)
+
 JDK 1.7 使用分段锁机制来实现并发更新操作，核心类为 Segment，它继承自重入锁 ReentrantLock，并发度与 Segment 数量相等。
 
-JDK 1.8 使用了 CAS 操作来支持更高的并发度，在 CAS 操作失败时使用内置锁 synchronized。
+JDK 1.8 使用了 CAS 操作来支持更高的并发度，在 CAS 操作失败时使用内置锁 synchronized。可以说不再用 AQS。
 
 并且 JDK 1.8 的实现也在链表过长时会转换为红黑树。
 

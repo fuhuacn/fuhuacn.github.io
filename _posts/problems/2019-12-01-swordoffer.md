@@ -3445,3 +3445,115 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 75. 和为S的两个数字
+
++ 题目描述：
+
+    输入一个数组和一个数字s，在数组中查找两个数，使得它们的和正好是s。
+
+    如果有多对数字的和等于s，输出任意一对即可。
+
+    你可以认为每组输入中都至少含有一组满足条件的输出。
+
++ 解法：
+
+    把所有数放入一个 map 或 set 中。
+
+    第二种做法是排序数组，然后双指针从头尾走。和大了右边往后走，和小了左边往前走。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int[] findNumbersWithSum(int[] nums, int target) {
+            Map<Integer,Boolean> map = new HashMap<>();
+            int[] res = new int[2];
+            for(int num:nums){
+                Boolean i = map.get(target-num);
+                if(i!=null){
+                    res[0]=num;
+                    res[1]=target-num;
+                    break;
+                }else{
+                    map.put(num,true);
+                }
+            }
+            return res;
+        }
+        public int[] findNumbersWithSum2(int[] nums, int target) {
+            int left = 0;
+            int right = nums.length-1;
+            int[] res = new int[2];
+            Arrays.sort(nums);
+            while(left<right){
+                if(nums[left]+nums[right]>target){
+                    right--;
+                }else if(nums[left]+nums[right]<target){
+                    left++;
+                }else{
+                    res[0] = nums[left];
+                    res[1] = nums[right];
+                    break;
+                }
+            }
+            return res;
+        }
+    }
+    ```
+
+## 76. 和为S的连续正数序列
+
++ 题目描述：
+
+    输入一个正数s，打印出所有和为s的连续正数序列（至少含有两个数）。
+
+    例如输入15，由于1+2+3+4+5=4+5+6=7+8=15，所以结果打印出3个连续序列1～5、4～6和7～8。
+
+    **事例：**
+
+    输入：15
+
+    输出：[[1,2,3,4,5],[4,5,6],[7,8]]
+
++ 解法：
+
+    从 1 开始往后加，最多加到 sum/2+1 就结束了，往后的再加不可能再到了，因为一串数字中间两个数相加就超过末尾的数了。
+
+    在连续加的过程中，如果没到目标，就从后面补数，如果超了就从前面减去数。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public List<List<Integer> > findContinuousSequence(int sum) {
+        // 从 1 到 sum/2+1 都有可能
+        // 所以在这个范围内加，大了就从底下减，小了就从上面往上加
+        int start = 1;
+        int num = 2;
+        int end = sum/2+1;
+        int tempSum = start+num;
+        List<List<Integer> > res = new LinkedList<>();
+        while(start<end){
+            if(tempSum<sum){
+                //小了就在后面给他加数
+                num++;
+                tempSum+=num;
+            }else if(tempSum>sum){
+                //加大了，就把前面的数减掉
+                tempSum-=start;
+                start++;
+            }else{
+                List<Integer> list = new LinkedList<>();
+                for(int i=start;i<=num;i++){
+                    list.add(i);
+                }
+                res.add(list);
+                num++;
+                tempSum+=num;
+            }
+            }
+            return res;
+        }
+    }
+    ```
