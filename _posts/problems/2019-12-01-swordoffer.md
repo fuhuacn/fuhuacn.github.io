@@ -3670,3 +3670,42 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 79. 滑动窗口的最大值
+
++ 题目描述：
+
+    给定一个数组和滑动窗口的大小，请找出所有滑动窗口里的最大值。
+
+    例如，如果输入数组[2, 3, 4, 2, 6, 2, 5, 1]及滑动窗口的大小3,那么一共存在6个滑动窗口，它们的最大值分别为[4, 4, 6, 6, 6, 5]。
+
++ 解法：
+
+    用一个双端队列存储窗口内的元素。队列中数字递减，当遇到一个新的比队列最后一个数大的数时，循环从队列后面出数直到比他大。因为他序号在后面还大，前面的数就没用了。当遇到比最后一个数小的数时，直接插入队列。
+
+    循环时同时要查找队列头序号，防止超过窗口大小。要从 k-1 时开始把数字加入滑动窗口
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int[] maxInWindows(int[] nums, int k) {
+            int[] res = new int[nums.length-k+1];
+            int index=0;
+            LinkedList<Integer> list = new LinkedList<>();
+            for(int i=0;i<nums.length;i++){
+                while(!list.isEmpty()&&nums[list.getLast()]<=nums[i]){
+                    list.removeLast();
+                }
+                list.add(i);
+                if(i+1>=k){
+                    if(i-list.getFirst()>=k){
+                        list.removeFirst();
+                    }
+                    res[index++]=nums[list.getFirst()];
+                }
+            }
+            return res;
+        }
+    }
+    ```
