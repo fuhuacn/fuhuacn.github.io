@@ -3709,3 +3709,124 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 80. 骰子的点数
+
++ 题目描述：
+
+    将一个骰子投掷n次，获得的总点数为s，s的可能范围为n~6n。
+
+    掷出某一点数，可能有多种掷法，例如投掷2次，掷出3点，共有[1,2],[2,1]两种掷法。
+
+    请求出投掷n次，掷出n~6n点分别有多少种掷法。
+
+    **示例：**
+
+    输入：n=2
+
+    输出：[1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1]
+
+    解释：投掷2次，可能出现的点数为2-12，共计11种。每种点数可能掷法数目分别为1,2,3,4,5,6,5,4,3,2,1。
+
+    所以输出[1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1]。
+
++ 解法：
+
+    用动态规划。dp[i][k] 表示投到第 i 个骰子和为 k。所以 dp[i][k] 再扔下一枚骰子时，可能的值是 dp[i+1][k+1] - dp[i+1][k+6]。所以每次的 dp[i][k+j] =  dp[i][k+j]+dp[i-1][k]。
+
+    如果用 dfs 会超时，思想是每个结果都一个一个的找答案，只有找到 n=0 并且 sum 也等于 0 情况才算成功。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int[] numberOfDice(int n) {
+            //动态规划
+            int[][] dp = new int[n+1][6*n+1];//第一个参数是扔到第几枚骰子，第二个参数是到目前可能的数
+            dp[0][0]=1;
+            int min = 0;// 骰子最小从几开始
+            for(int i=1;i<=n;i++){
+                for(int k=min;k<=6*(i-1);k++){ //上一轮的范围都可以新扔一个骰子 +1 
+                    for(int j=1;j<=6;j++){
+                        dp[i][k+j] +=dp[i-1][k]; // 上个骰子投到 k 时的数量，这次投到 j
+                    }
+                }
+                min++;
+            }
+            int[] res = new int[6*n-n+1];
+            for(int i=n;i<=6*n;i++){
+                res[i-n] = dp[n][i];
+            }
+            return res;
+        }
+
+        int count = 0;
+        public int[] numberOfDice2(int n) {
+            int[] res = new int[6 * n - n + 1];
+            for (int i = n,j=0; i <= 6 * n; i++,j++) {
+                count = 0; //每个有可能的结果都进行遍历
+                dfs(n, i);
+                res[j] = count;
+            }
+            return res;
+        }
+        public void dfs(int n,int sum){
+            if(n==0&&sum==0){
+                count++;// 恰好最后一个骰子也是这个数字
+                return;
+            }
+            if(n<=0||sum<0){
+                return;
+            }
+            for(int i=1;i<=6;i++){
+                dfs(n-1,sum-i);
+                if (sum - i <= 0)
+                    break;
+            }
+        }
+    }
+    ```
+
+## 81. 扑克牌的顺子
+
++ 题目描述：
+
+    从扑克牌中随机抽5张牌，判断是不是一个顺子，即这5张牌是不是连续的。
+
+    2～10为数字本身，A为1，J为11，Q为12，K为13，大小王可以看做任意数字。
+
+    为了方便，大小王均以0来表示，并且假设这副牌中大小王均有两张。
+
+    **示例：**
+
+    输入：[8,9,10,11,12]
+
+    输出：true
+
++ 解法：
+
+    牌里没有重复值，最大值减最小值的大小和牌数一样就是顺子/
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public boolean isContinuous(int [] numbers) {
+            int[] p = new int[14];
+            int max = -1;
+            int min = 14;
+            for(int number:numbers){
+                if(number==0) continue;
+                max = Math.max(number,max);
+                min = Math.min(number,min);
+                if(p[number]!=0){ //有重复牌了
+                    return false;
+                }
+                p[number]=1;
+            }
+            //没有重复牌，最大值最小值的差是牌数量，就是顺子
+            if(max-min+1==numbers.length) return true;
+            return false;
+        }
+    }
+    ```
