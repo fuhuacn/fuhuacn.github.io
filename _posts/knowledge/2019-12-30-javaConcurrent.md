@@ -1132,3 +1132,5 @@ public static void main(String[] args) throws InterruptedException {
 ```
 
 输出并不是 1000。
+
+# 十、Java 内存模型
