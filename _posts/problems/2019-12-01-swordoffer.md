@@ -3859,3 +3859,188 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 83. 股票的最大利润
+
++ 题目描述：
+
+    假设把某股票的价格按照时间先后顺序存储在数组中，请问买卖 一次 该股票可能获得的利润是多少？
+
+    例如一只股票在某些时间节点的价格为[9, 11, 8, 5, 7, 12, 16, 14]。
+
+    如果我们能在价格为5的时候买入并在价格为16时卖出，则能收获最大的利润11。
+
+    **示例：**
+
+    输入：[9, 11, 8, 5, 7, 12, 16, 14]
+
+    输出：11
+
++ 解法：
+
+    记录一个最小值，遇到最小的更新最小值。遍历数组时每个数都减去最小值获得此时的最大利润。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int maxDiff(int[] nums) {
+            int min = Integer.MAX_VALUE;
+            int currentMax = Integer.MIN_VALUE;
+            int res = 0;
+            for(int i=0;i<nums.length;i++){
+                if(nums[i]<min){
+                    min = nums[i];
+                    currentMax = Integer.MIN_VALUE;
+                }else{
+                    if(nums[i]>currentMax){
+                        currentMax = Math.max(currentMax,nums[i]);
+                        res = Math.max(res,currentMax-min);
+                    }
+                }
+            }
+            return res;
+        }
+    }
+    ```
+
++ 题目描述：
+
+    给定一个数组，它的第 i 个元素是一支给定股票第 i 天的价格。
+
+    设计一个算法来计算你所能获取的最大利润。你可以尽可能地完成更多的交易（多次买卖一支股票）。
+
+    注意：你不能同时参与多笔交易（你必须在再次购买前出售掉之前的股票）。
+
+    **示例：**
+
+    输入：[7,1,5,6,4]
+
+    输出：5
+
++ 解法：
+
+    因为每天都能卖，所以只要数字只要比前一天大，就是利润要加进去。
+
++ 代码：
+
+    ``` java
+    public class Solution {
+        public int maxProfit(int[] prices) {
+            int profit = 0;
+            int res = 0;
+            for(int i=1;i<prices.length;i++){
+                int temp = prices[i]-prices[i-1];
+                if(temp>0){
+                    profit+=temp;
+                }
+            }
+            return profit;
+        }
+    }
+    ```
++ 题目描述：
+
+    给定一个数组，它的第 i 个元素是一支给定股票第 i 天的价格。
+
+    设计一个算法来计算你所能获取的最大利润。你可以尽可能地完成更多的交易（多次买卖一支股票）。
+
+    注意：你不能同时参与多笔交易（你必须在再次购买前出售掉之前的股票）。
+
+    **示例：**
+
+    输入：[7,1,5,6,4]
+
+    输出：5
+
++ 解法：
+
+    因为每天都能卖，所以只要数字只要比前一天大，就是利润要加进去。
+
++ 代码：
+
+    ``` java
+    public class Solution {
+        public int maxProfit(int[] prices) {
+            int profit = 0;
+            int res = 0;
+            for(int i=1;i<prices.length;i++){
+                int temp = prices[i]-prices[i-1];
+                if(temp>0){
+                    profit+=temp;
+                }
+            }
+            return profit;
+        }
+    }
+    ```
+
++ 题目描述：
+
+    给定一个整数数组，其中第 i 个元素代表了第 i 天的股票价格 。​
+
+    设计一个算法计算出最大利润。在满足以下约束条件下，你可以尽可能地完成更多的交易（多次买卖一支股票）:
+
+    你不能同时参与多笔交易（你必须在再次购买前出售掉之前的股票）。
+    卖出股票后，你无法在第二天买入股票 (即冷冻期为 1 天)。
+
+    **示例：**
+
+    输入: [1,2,3,0,2]
+
+    输出: 3 
+
++ 解法：
+
+    动态规划，分别每次更新三种状态。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int maxProfit(int[] prices) {
+            if(prices.length==0||prices.length==1) return 0;
+            //总共分为三个状态，分别是买入，卖出，和卖出后的休息一天
+            int[] buy = new int[prices.length];//可能是前一天后的等待中，或者是闲置后的今天买入。不可能是上一天的卖出。buy[i] = max(buy[i-1],rest[i-1]-prices[i])
+            int[] sell = new int[prices.length];//卖出后不可能再卖出，卖出后也直接进入闲置状态。所以 sell[i]=buy[i-1]+prices[i]
+            int[] rest = new int[prices.length];//买入后不可能直接闲置，闲置一定是卖出去了或者上一步也是闲置。所以 rest[i] = max(sell[i-1],rest[i-1])
+            buy[0] = -prices[0];
+            sell[0] = 0;
+            rest[0] = 0;
+            for(int i=1;i<prices.length;i++){
+                buy[i] = Math.max(buy[i-1],rest[i-1]-prices[i]); // 买完后等着或者刚刚买完
+                sell[i] = buy[i-1]+prices[i];
+                rest[i] = Math.max(rest[i-1],sell[i-1]);
+            }
+            return Math.max(sell[prices.length-1],rest[prices.length-1]);//因为最后状态只能是闲置或者刚刚买。
+        }
+    }
+    ```
+
+## 84. 求1+2+…+n
+
++ 题目描述：
+
+    求1+2+…+n,要求不能使用乘除法、for、while、if、else、switch、case等关键字及条件判断语句（A?B:C）。
+
+    **示例：**
+
+    输入：10
+
+    输出：55
+
++ 解法：
+
+    && 具有短路特性，当左边为 false 后右边就不执行。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int getSum(int n) {
+            int sum = n;
+            boolean ans = (n>0) && ((sum+=getSum(n-1))> 0); // 利用 && 短路。注意两边必须是 boolean
+            return sum;
+        }
+    }
+    ```

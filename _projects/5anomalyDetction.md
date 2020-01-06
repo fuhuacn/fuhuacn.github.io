@@ -45,7 +45,7 @@ description: 自适应异常检测平台
 
 ## 概括架构
 
-![架构图](/images/projects/anomaly/自适应异常检测架构图.png)
+![架构图](/images/projects/anomaly/自适应异常检测.png)
 
 首先搭建了一套 Hadoop 集群，其实在我们实验室框架下是将 Hadoop 集群分成了两套，一套专门的运算（YARN）集群，一套专门的存储集群（HDFS）。
 
