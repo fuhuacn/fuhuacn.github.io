@@ -4044,3 +4044,133 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 85. 不用加减乘除做加法
+
++ 题目描述：
+
+    写一个函数，求两个整数之和，要求在函数体内不得使用＋、－、×、÷ 四则运算符号。
+
++ 解法：
+
+    异或是不相同的是 1，所以是不带进位的加法。与运算是进位运算。之后把异或结果当做第一个数，与结果当做第一个数。这样放到循环中后一直把循环加到 0 就好了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int add(int num1, int num2) {
+            do{
+                int xor = num1 ^ num2;
+                int flag = num1 & num2;
+                num1 = xor; // 无符号加后继续跟进位加
+                num2 = (flag<<1); 
+            }while(num2!=0);
+            return num1;
+        }
+    }
+    ```
+
+## 86. 构建乘积数组
+
++ 题目描述：
+
+    给定一个数组A[0, 1, …, n-1]，请构建一个数组B[0, 1, …, n-1]，其中B中的元素B[i]=A[0]×A[1]×… ×A[i-1]×A[i+1]×…×A[n-1]。
+
+    不能使用除法。
+    
+    **示例：**
+
+    输入：[1, 2, 3, 4, 5]
+
+    输出：[120, 60, 40, 30, 24]
+
++ 解法：
+
+    用结果的数组保存 i 前的乘积，用一个常量保存之后的乘积。这样之前的乘积就是之前的数乘之前的乘积，常量呈上之后的数也就是新的之后的乘积。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int[] multiply(int[] A) {
+            int[] res = new int[A.length];
+            if(A.length==0) return res;
+            res[0] = 1;// res 被用作当前位之前的乘积，所以第一个是 1。之后的就是前一位乘当前位
+            for(int i=1;i<A.length;i++){
+                res[i] = res[i-1]*A[i-1];
+            }
+            int tmp = 1;// 此时把 A 作为求后面的积，这样最后一位是 1。之后一直乘 A 的后一位
+            for(int i=A.length-2;i>=0;i--){
+                tmp *= A[i+1];
+                res[i] *= tmp;
+            }
+            return res;
+        }
+    }
+    ```
+
+## 87. 把字符串转换成整数
+
++ 题目描述：
+
+    请你写一个函数StrToInt，实现把字符串转换成整数这个功能。
+
+    当然，不能使用atoi或者其他类似的库函数。
+    
+    **示例：**
+
+    输入："123"
+
+    输出：123
+
+    **注意：**
+
+    你的函数应满足下列条件：
+
+    - 忽略所有行首空格，找到第一个非空格字符，可以是 ‘+/−’ 表示是正数或者负数，紧随其后找到最长的一串连续数字，将其解析成一个整数；
+    - 整数后可能有任意非数字字符，请将其忽略；
+    - 如果整数长度为0，则返回0；
+    - 如果整数大于INT_MAX(2^31 − 1)，请返回INT_MAX；如果整数小于INT_MIN(−2^31) ，请返回INT_MIN；
+
++ 解法：
+
+    考虑全面，遍历每一位，如果是字符就跳过。先判断是 + 还是 -，每次算的时候带符号加减，同时比较每次的新数字和之前的关系，如果不符合大小关系证明超界了。
+
++ 代码：
+
+    ``` java
+    class Solution {
+        public int strToInt(String str) {
+            if(str.equals("")) return 0;
+            String s = str.trim();
+            char[] cs = s.toCharArray();
+            int ifMinus = 1;
+            int start = 0;
+            if(cs[0]=='-'){
+                start=1;
+                ifMinus = -1;
+            }else if(cs[0]!='+'&&(cs[0]<'0'||cs[0]>'9')) return 0;
+            int unit = 1;
+            int res = 0;
+            for(int i=cs.length-1;i>=start;i--){
+                if(cs[i]<'0'||cs[i]>'9'){
+                    continue;
+                }
+                int temp = res;
+                res+=ifMinus*unit*(cs[i]-'0');
+                if(ifMinus==-1){
+                    if(res>temp){
+                        return Integer.MIN_VALUE;
+                    }
+                }else{
+                    if(res<temp){
+                        return Integer.MAX_VALUE;
+                    }
+                }
+                unit*=10;
+            }
+            return res;
+        }
+    }
+    ```
