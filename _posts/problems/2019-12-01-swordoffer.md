@@ -4174,3 +4174,61 @@ keywords: AcWing 题目
         }
     }
     ```
+
+## 88. 树中两个结点的最低公共祖先
+
++ 题目描述：
+
+    给出一个二叉树，输入两个树节点，求它们的最低公共祖先。
+
+    一个树节点的祖先节点包括它本身。
+
+    **注意：**
+
+    - 输入的二叉树不为空；
+    - 输入的两个节点一定不为空，且是二叉树中的节点；
+    
+    **示例：**
+
+    ``` text
+    二叉树[8, 12, 2, null, null, 6, 4, null, null, null, null]如下图所示：
+         8
+        / \
+       12  2
+          / \
+         6   4
+
+    1. 如果输入的树节点为2和12，则输出的最低公共祖先为树节点8。
+
+    2. 如果输入的树节点为2和6，则输出的最低公共祖先为树节点2。
+    ```
+
++ 解法：
+
+    递归去深度搜索，如果当前节点的左右都找到了节点，则这个节点就是最低公共节点返回。如果只有一边找到了，一边没找到，则返回找到的那边，只有当两边都找到了才是最低公共节点。找到后往上返回的时候，那个节点只会一边有节点所有返回有的那边还是正确的。
+
++ 代码：
+
+    ``` java
+    /**
+    * Definition for a binary tree node.
+    * public class TreeNode {
+    *     int val;
+    *     TreeNode left;
+    *     TreeNode right;
+    *     TreeNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+            if(root ==null ) return null;
+            if(root == p||root == q) return root;
+            TreeNode left = lowestCommonAncestor(root.left,p,q);
+            TreeNode right = lowestCommonAncestor(root.right,p,q);
+            if(left!=null&&right!=null) return root;
+            if(left!=null) return left;
+            if(right!=null) return right;
+            else return null;
+        }
+    }
+    ```
