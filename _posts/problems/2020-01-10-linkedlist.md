@@ -96,5 +96,17 @@ keywords: leetcode,链表
             }
             return first.next;
         }
+        // 之前的想的太复杂了
+        public ListNode deleteDuplicates2(ListNode head) {
+            ListNode first = head;
+            while(first!=null && first.next!=null){ //first 下一个为空也就没有重复了
+                if(first.val == first.next.val){
+                    first.next = first.next.next;
+                }else{
+                    first = first.next;
+                }
+            }
+            return head;
+        }
     }
     ```
