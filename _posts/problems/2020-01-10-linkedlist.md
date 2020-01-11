@@ -110,3 +110,71 @@ keywords: leetcode,链表
         }
     }
     ```
+
+## 206. 反转链表 简单
+
+* 题目描述
+
+    反转一个单链表。
+
+    **Example:**
+
+    >输入: 1->2->3->4->5->NULL  
+    输出: 5->4->3->2->1->NULL
+
+* 解法
+
+    循环和递归两种方式。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode reverseList(ListNode head){
+            ListNode prev = null;
+            ListNode next = head;
+            while(next!=null){
+                ListNode temp = next.next;
+                next.next = prev;
+                prev = next;
+                next = temp;
+            }
+            return prev;
+        }
+
+        ListNode res = null;
+        public ListNode reverseList2(ListNode head) {
+            if(head == null) return null;
+            helper(head);
+            return res;
+        }
+        public ListNode helper(ListNode head){
+            if(head.next == null){
+                res = head;
+                return head;
+            }
+            ListNode node = helper(head.next);
+            node.next = head;
+            head.next = null; // 要用这话，目的是首个链表下一个设为 null
+            return head;
+        }
+
+        public ListNode reverseList3(ListNode head){
+            if(head==null||head.next == null){
+                return head;
+            }
+            ListNode p = reverseList(head.next); //记录下的最深的节点，永远返回 p
+            head.next.next = head; //反转就是让他的下一个节点指向自己
+            head.next = null; // 要用这话，目的是首个链表下一个设为 null
+            return p;
+        }
+    }
+    ```
