@@ -178,3 +178,58 @@ keywords: leetcode,链表
         }
     }
     ```
+
+## 92. 反转链表 II 中等
+
+* 题目描述
+
+    反转从位置 m 到 n 的链表。请使用一趟扫描完成反转。
+
+    **Example:**
+
+    >输入: 1->2->3->4->5->NULL, m = 2, n = 4  
+    输出: 1->4->3->2->5->NULL
+
+* 解法
+
+    先提前走 m 位。然后开始反转。之后在拼接头拼尾，尾拼头。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode reverseBetween(ListNode head, int m, int n) {
+            if(head==null) return null;
+            ListNode res = head;
+            ListNode prev = null; // 反转后头连接的地方
+            for(int i=0;i<m-1;i++){
+                prev = head;
+                head = head.next;
+            }
+            ListNode firstReverse = head; // 第一个开始反转的点，未来他就是最后一个点，要连接之后的下一个
+            ListNode before = null;
+            for(int i=m;i<=n;i++){
+                ListNode temp = head.next;
+                head.next = before;
+                before = head;
+                head = temp;
+            }
+            // 循环完后，此时的 head 是反转后的下一个，也就是反转后的头应该连接的地方。before 应该是 prev 连接的地方。
+            firstReverse.next = head;
+            if(prev!=null){
+                prev.next = before;
+                return res;
+            }else{ //prev 为空证明从第一个数就开始反转
+                return before;
+            }
+        }
+    }
+    ```
