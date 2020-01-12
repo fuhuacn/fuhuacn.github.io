@@ -233,3 +233,123 @@ keywords: leetcode,链表
         }
     }
     ```
+
+## 61. 旋转链表 中等
+
+* 题目描述
+
+    给定一个链表，旋转链表，将链表每个节点向右移动 k 个位置，其中 k 是非负数。
+
+    **Example:**
+
+    >输入: 1->2->3->4->5->NULL, k = 2  
+    输出: 4->5->1->2->3->NULL  
+    解释:  
+    向右旋转 1 步: 5->1->2->3->4->NULL  
+    向右旋转 2 步: 4->5->1->2->3->NULL
+
+* 解法
+
+    其实就是把倒数长度取余数个节点移到链表头。求出余数后，用快慢节点方法找到移的位置，把它设为返回值，尾部连接到头就可以了。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode rotateRight(ListNode head, int k) {
+            if(head == null) return null;
+            // k%长度 就是把倒数第几个节点移到头
+            ListNode node = head;
+            ListNode tail = null; // 尾节点以后直接接到头
+            int count = 0;
+            while(node!=null){
+                tail = node;
+                node = node.next;
+                count++;
+            }
+            int rotate = k%count;
+            if(rotate == 0) return head;
+            ListNode slow = head;
+            node = head;
+            // 快慢节点，先走 k 步
+            for(int i=0;i<rotate;i++){
+                node = node.next;
+            }
+            while(node.next!=null){
+                node = node.next;
+                slow = slow.next;
+            }
+            ListNode res = slow.next;
+            slow.next = null;
+            tail.next = head;
+            return res;
+        }
+    }
+    ```
+
+## 61.重排链表 中等
+
+* 题目描述
+
+    给定一个单链表 L：L0→L1→…→Ln-1→Ln ，
+
+    将其重新排列后变为： L0→Ln→L1→Ln-1→L2→Ln-2→…
+
+    你不能只是单纯的改变节点内部的值，而是需要实际的进行节点交换。
+
+    **Example:**
+
+    >给定链表 1->2->3->4->5, 重新排列为 1->5->2->4->3.
+
+* 解法
+
+    比较直观的一个方法是把链表分成两部分，后半部分放到栈里。分成两部分可以用快慢指针，后半部分可以用反转链表。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public void reorderList(ListNode head) {
+            if(head == null) return;
+            // 把整个链表一分为二，后一半扔到栈里，往外吐
+            ListNode node = head;
+            ListNode fast = head;
+            while(fast!=null && fast.next!=null){
+                node = node.next;
+                fast = fast.next.next;
+            }
+            // 前一半不动，后一半放到栈里
+            Stack<ListNode> stack = new Stack<>();
+            while(node!=null){
+                ListNode temp = node.next; 
+                node.next = null;
+                stack.push(node);
+                node = temp;
+            }
+            node = head;
+            while(stack.size()>0){
+                ListNode temp = stack.pop();
+                temp.next = node.next;
+                node.next = temp;
+                node = node.next.next;
+            }
+            node.next = null;
+        }
+    }
+    ```
