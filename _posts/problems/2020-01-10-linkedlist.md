@@ -353,3 +353,113 @@ keywords: leetcode,链表
         }
     }
     ```
+
+## 21. 合并两个有序链表 简单
+
+* 题目描述
+
+    将两个有序链表合并为一个新的有序链表并返回。新链表是通过拼接给定的两个链表的所有节点组成的。 
+
+    **Example:**
+
+    >输入：1->2->4, 1->3->4  
+    输出：1->1->2->3->4->4
+
+* 解法
+
+    两个链表依次把小的往里面添加就好了。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
+            ListNode head = new ListNode(-1);
+            ListNode res = head;
+            while(l1!=null && l2!=null){
+                if(l1.val<=l2.val){
+                    head.next = l1;
+                    l1 = l1.next;
+                }else{
+                    head.next = l2;
+                    l2 = l2.next;
+                }
+                head = head.next;
+            }
+            while(l1!=null){
+                head.next = l1;
+                l1 = l1.next;
+                head = head.next;
+            }
+            while(l2!=null){
+                head.next = l2;
+                l2 = l2.next;
+                head = head.next;
+            }
+            return res.next;
+        }
+    }
+    ```
+
+## 160. 相交链表 简单
+
+* 题目描述
+
+    编写一个程序，找到两个单链表相交的起始节点。
+
+    **Example:**
+
+    >略
+
+* 解法
+
+    用两个指针分别从两个链表头部开始扫描，每次分别走一步；
+    如果指针走到null，则从另一个链表头部开始走；
+    当两个指针相同时，
+    如果指针不是null，则指针位置就是相遇点；
+    如果指针是 null，则两个链表不相交；
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) {
+    *         val = x;
+    *         next = null;
+    *     }
+    * }
+    */
+    public class Solution {
+        public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+            // 两个指针节点分别从两个头走当一个走到尾后，从另一个头开始走。
+            // 相当于所有节点都会走一轮长短路径
+            ListNode nodeA = headA;
+            ListNode nodeB = headB;
+            while(nodeA!=nodeB){
+                if(nodeA == null){
+                    nodeA = headB;
+                }else{
+                    nodeA = nodeA.next;
+                }
+                if(nodeB == null){
+                    nodeB = headA;
+                }else{
+                    nodeB = nodeB.next;
+                }
+            }
+            return nodeA;
+        }
+    }
+    ```
