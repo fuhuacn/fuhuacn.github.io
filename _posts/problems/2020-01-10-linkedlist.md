@@ -463,3 +463,100 @@ keywords: leetcode,链表
         }
     }
     ```
+
+## 141. 环形链表 简单
+
+* 题目描述
+
+    给定一个链表，判断链表中是否有环。
+
+    为了表示给定链表中的环，我们使用整数 pos 来表示链表尾连接到链表中的位置（索引从 0 开始）。 如果 pos 是 -1，则在该链表中没有环。
+
+    **Example:**
+
+    >略
+
+* 解法
+
+    快慢节点，如果快的追上慢的就是有环。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) {
+    *         val = x;
+    *         next = null;
+    *     }
+    * }
+    */
+    public class Solution {
+        public boolean hasCycle(ListNode head) {
+            ListNode slow = head;
+            ListNode fast = head;
+            do{
+                if(fast==null || fast.next==null) return false;
+                slow = slow.next;
+                fast = fast.next.next;
+            }while(slow!=fast);
+            return true;
+        }
+    }
+    ```
+
+## 147. 对链表进行插入排序 中等
+
+* 题目描述
+
+    对链表进行插入排序。
+
+    插入排序算法：
+
+    - 插入排序是迭代的，每次只移动一个元素，直到所有元素可以形成一个有序的输出列表。
+    - 每次迭代中，插入排序只从输入数据中移除一个待排序的元素，找到它在序列中适当的位置，并将其插入。
+    - 重复直到所有输入数据插入完为止。
+
+    **Example:**
+
+    >输入: 4->2->1->3  
+    输出: 1->2->3->4
+
+* 解法
+
+    插入排序，每次回到头，找到合适的位置插入。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    
+    class Solution {
+        public ListNode insertionSortList(ListNode head) {
+            ListNode node = head;
+            ListNode first = new ListNode(Integer.MIN_VALUE); // 因为可能比 head 小，所以需要一个头节点。
+            while(node!=null){
+                ListNode start = first;
+                while(start.next!=null && node.val>start.next.val){
+                    start = start.next;
+                }
+                ListNode next = node.next; // 由于要插入，要记录下一个节点，链表断开只要能找到下一个就行
+                // 由于有序，找到插入的位置，即使都比他小，此时也来到了最后一个，相当于没动
+                node.next = start.next;
+                start.next = node;
+                node = next;
+            }
+            return first.next;
+        }
+    }
+    ```
