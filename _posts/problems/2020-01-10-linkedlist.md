@@ -560,3 +560,121 @@ keywords: leetcode,链表
         }
     }
     ```
+
+## 138. 复制带随机指针的链表 中等
+
+* 题目描述
+
+    给定一个链表，每个节点包含一个额外增加的随机指针，该指针可以指向链表中的任何节点或空节点。
+
+    要求返回这个链表的 深拷贝。 
+
+    **Example:**
+
+    >略
+
+* 解法
+
+    把每个链表先不管随机值复制，然后再给复制的值设随机值，再拆开。
+
+* 代码
+
+    ``` java
+    /*
+    // Definition for a Node.
+    class Node {
+        int val;
+        Node next;
+        Node random;
+
+        public Node(int val) {
+            this.val = val;
+            this.next = null;
+            this.random = null;
+        }
+    }
+    */
+    class Solution {
+        public Node copyRandomList(Node head) {
+            Node node = head;
+            //在每个节点后面复制一个相同节点
+            while(node!=null){
+                Node dup = new Node(node.val);
+                dup.next = node.next;
+                node.next = dup;
+                node = node.next.next;
+            }
+            //给复制的节点设定随机节点
+            node = head;
+            while(node!=null){
+                if(node.random!=null){
+                    node.next.random = node.random.next;
+                }
+                node = node.next.next;
+            }
+            //拆开原链表和复制链表
+            Node res = new Node(-1);
+            Node first = res;
+            node = head;
+            while(node!=null){
+                first.next = node.next;
+                node.next = node.next.next;
+                node = node.next;
+                first = first.next;
+            }
+            return res.next;
+        }
+    }
+    ```
+
+## 142. 环形链表 II 简单
+
+* 题目描述
+
+    给定一个链表，返回链表开始入环的第一个节点。 如果链表无环，则返回 null。
+
+    为了表示给定链表中的环，我们使用整数 pos 来表示链表尾连接到链表中的位置（索引从 0 开始）。 如果 pos 是 -1，则在该链表中没有环。
+
+    说明：不允许修改给定的链表。
+
+    **Example:**
+
+    >略
+
+* 解法
+
+    先一快一慢指针，走到相交点，再从相交点和起点每次走一个。再次的相交点就是环。
+
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) {
+    *         val = x;
+    *         next = null;
+    *     }
+    * }
+    */
+    public class Solution {
+        public ListNode detectCycle(ListNode head) {
+            ListNode slow = head;
+            ListNode fast = head;
+            do{
+                if(fast==null||fast.next==null) return null;
+                slow = slow.next;
+                fast = fast.next.next;
+            }while(slow!=fast);
+            //再快慢都从相交点走
+            fast = head;
+            while(slow!=fast){
+                slow =slow.next;
+                fast= fast.next;
+            }
+            return slow;
+        }
+    }
+    ```
