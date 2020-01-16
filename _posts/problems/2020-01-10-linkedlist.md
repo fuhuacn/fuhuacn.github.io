@@ -678,3 +678,173 @@ keywords: leetcode,链表
         }
     }
     ```
+
+## 148. 排序链表 中等
+
+* 题目描述
+
+    在 O(n log n) 时间复杂度和常数级空间复杂度下，对链表进行排序。
+
+    **Example:**
+
+    >略
+
+* 解法
+
+    归并排序。归是找节点中间节点，要记着把前半段最后一个点设为 null。并就是把两个有序链表结合。
+* 代码
+
+    ``` java
+    /**
+    * Definition for singly-linked list.
+    * public class ListNode {
+    *     int val;
+    *     ListNode next;
+    *     ListNode(int x) { val = x; }
+    * }
+    */
+    class Solution {
+        public ListNode sortList(ListNode head) {
+            if(head==null||head.next==null) return head;
+            ListNode slow = head;
+            ListNode fast = head;
+            ListNode pre = null;//用于给最后一个谁为 null
+            while(fast!=null&&fast.next!=null){
+                pre = slow;
+                slow = slow.next;
+                fast = fast.next.next;
+            }
+            pre.next = null;
+            ListNode l1 = sortList(head);
+            ListNode l2 = sortList(slow);
+            return merge(l1,l2);
+        }
+        public ListNode merge(ListNode head1, ListNode head2){
+            ListNode node1 = head1;
+            ListNode node2 = head2;
+            ListNode first = new ListNode(-1);
+            ListNode res = first;
+            while(node1!=null&&node2!=null){
+                if(node1.val<=node2.val){
+                    first.next = node1;
+                    node1 = node1.next;
+                }else{
+                    first.next=node2;
+                    node2=node2.next;
+                }
+                first=first.next;
+            }
+            if(node1!=null){
+                first.next = node1;
+            }
+            if(node2!=null){
+                first.next = node2;
+            }
+            return res.next;
+        }
+    }
+    ```
+
+## 146. LRU缓存机制 中等
+
+* 题目描述
+
+    运用你所掌握的数据结构，设计和实现一个  LRU (最近最少使用) 缓存机制。它应该支持以下操作： 获取数据 get 和 写入数据 put 。
+
+    获取数据 get(key) - 如果密钥 (key) 存在于缓存中，则获取密钥的值（总是正数），否则返回 -1。
+
+    写入数据 put(key, value) - 如果密钥不存在，则写入其数据值。当缓存容量达到上限时，它应该在写入新数据之前删除最近最少使用的数据值，从而为新的数据值留出空间。
+
+    **Example:**
+
+    ``` java
+    LRUCache cache = new LRUCache( 2 /* 缓存容量 */ );
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cache.get(1);       // 返回  1
+    cache.put(3, 3);    // 该操作会使得密钥 2 作废
+    cache.get(2);       // 返回 -1 (未找到)
+    cache.put(4, 4);    // 该操作会使得密钥 1 作废
+    cache.get(1);       // 返回 -1 (未找到)
+    cache.get(3);       // 返回  3
+    cache.get(4);       // 返回  4
+    ```
+
+* 解法
+
+    既然要 O(1) 完成一定要用 HashMap。又因为涉及到淘汰和放前面，所以要用到双向链表。所以说可以把 HashMap 的 value 设成 node。
+
+* 代码
+
+    ``` java
+    class LRUCache {
+
+        Map<Integer,Node> map = new HashMap<>();
+        Node first = new Node(-1,-1);
+        Node last = new Node(-1,-1);
+        int capacity = 0;
+        int count = 0;
+
+        class Node{
+            Node(int key,int value){
+                this.key = key;
+                this.value = value;
+            }
+            int key;//方便从 map 删除
+            int value;
+            Node prev;
+            Node next;
+        }
+
+        public LRUCache(int capacity) {
+            this.capacity = capacity;
+            first.next = last;
+            last.prev = first;
+        }
+        
+        public int get(int key) {
+            Node node = map.get(key);
+            if(node==null) return -1;
+            node.prev.next = node.next;
+            node.next.prev = node.prev;
+            moveToFirst(node);
+            return node.value;
+        }
+        
+        public void put(int key, int value) {
+            if(map.containsKey(key)){
+                Node node = map.get(key);
+                node.value = value;
+                node.prev.next = node.next;
+                node.next.prev = node.prev;
+                moveToFirst(node);
+                return; 
+            }
+            count++;
+            if(count>capacity){
+                count--;
+                Node node = last.prev;
+                node.prev.next = last;
+                last.prev = node.prev;
+                map.remove(node.key);
+            }
+            Node newNode = new Node(key,value);
+            moveToFirst(newNode);
+            map.put(key,newNode);
+        }
+
+        public void moveToFirst(Node node){
+            node.next = first.next; 
+            first.next.prev = node;
+            first.next = node;
+            node.prev = first;
+        }
+    }
+
+    /**
+    * Your LRUCache object will be instantiated and called as such:
+    * LRUCache obj = new LRUCache(capacity);
+    * int param_1 = obj.get(key);
+    * obj.put(key,value);
+    */
+    ```
