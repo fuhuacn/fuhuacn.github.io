@@ -44,7 +44,7 @@ keywords: Java, Collections
 
 - TreeMap：基于红黑树实现。
 - HashMap：基于哈希表实现。
-- HashTable：和 HashMap 类似，但它是线程安全的，这意味着同一时刻多个线程同时写入 HashTable 不会导致数据不一致。它是遗留类，不应该去使用它，而是使用 ConcurrentHashMap 来支持线程安全，ConcurrentHashMap 的效率会更高，因为 ConcurrentHashMap 引入了分段锁。
+- Hashtable：和 HashMap 类似，但它是线程安全的，这意味着同一时刻多个线程同时写入 Hashtable 不会导致数据不一致。它是遗留类，不应该去使用它，而是使用 ConcurrentHashMap 来支持线程安全，ConcurrentHashMap 的效率会更高，因为 ConcurrentHashMap 引入了分段锁。
 - LinkedHashMap：使用双向链表来维护元素的顺序，顺序为插入顺序或者最近最少使用（LRU）顺序。
 
 # 二、容器设计模式
@@ -794,6 +794,8 @@ static final int tableSizeFor(int cap) {
 
 ## ConcurrentHashMap
 
+[详细](https://www.jianshu.com/p/fadc5bc01e23)
+
 以下先是对 java 1.7 中模式进行介绍：
 
 ### 1. 存储结构
@@ -809,7 +811,7 @@ static final class HashEntry<K,V> {
 }
 ```
 
-ConcurrentHashMap 和 HashMap 实现上类似，最主要的差别是 ConcurrentHashMap 采用了分段锁（Segment），每个分段锁维护着几个桶（HashEntry），多个线程可以同时访问不同分段锁上的桶，从而使其并发度更高（并发度就是 Segment 的个数）。
+ConcurrentHashMap 和 HashMap 实现上类似，最主要的差别是 **ConcurrentHashMap 采用了分段锁（Segment），每个分段锁维护着几个桶（HashEntry）**，多个线程可以同时访问不同分段锁上的桶，从而使其并发度更高（并发度就是 Segment 的个数）。
 
 Segment 继承自 ReentrantLock。所以 ConcurrentHashMap 在 J.U.C（java.util.concurrent）内，AQS 也是核心。
 
@@ -825,6 +827,7 @@ static final class Segment<K,V> extends ReentrantLock implements Serializable {
     static final int MAX_SCAN_RETRIES =
         Runtime.getRuntime().availableProcessors() > 1 ? 64 : 1;
 
+    // table 分别在每个 segment 中
     transient volatile HashEntry<K,V>[] table;
 
     transient int count;
@@ -842,6 +845,10 @@ static final class Segment<K,V> extends ReentrantLock implements Serializable {
 ``` java
 static final int DEFAULT_CONCURRENCY_LEVEL = 16;
 ```
+
+segment 数组的长度是由 concurrentLevel 计算来的， segment 数组的长度是 2 的 N 次方，所有默认 N 为 4。
+
+这个 N 也就是 sshift，segmentShift = 32 - sshift;
 
 ### 2. size 操作
 
@@ -915,15 +922,33 @@ public int size() {
 }
 ```
 
-### 3. JDK 1.8 的改动
+### 3. JDK 1.8 的改动 含 put 方法对比
 
-[更多详细内容。](https://www.cnblogs.com/yangfeiORfeiyang/p/9694383.html)
+[更多详细内容。](https://www.jianshu.com/p/c0642afe03e0)
 
 JDK 1.7 使用分段锁机制来实现并发更新操作，核心类为 Segment，它继承自重入锁 ReentrantLock，并发度与 Segment 数量相等。
 
 JDK 1.8 使用了 CAS 操作来支持更高的并发度，在 CAS 操作失败时使用内置锁 synchronized。可以说不再用 AQS。
 
 并且 JDK 1.8 的实现也在链表过长时会转换为红黑树。
+
+在 table（Node 的数组） 初始化，table 数组位置第一次插入节点时使用 cas 自旋插入。其余插入节点使用 synchronized。原因是 synchronized 的优化。
+
+### 红黑树
+
+一种二叉查找树，但在每个结点上增加一个存储位表示结点的颜色，可以是 Red 或 Black。
+
+通过对任何一条从根到叶子的路径上各个结点着色方式的限制，红黑树确保**没有一条路径会比其他路径长出俩倍，因而是接近平衡的。**
+
+但它是如何保证一棵n个结点的红黑树的高度始终保持在 logn 的呢？这就引出了红黑树的 5 个性质：
+
+- 每个结点要么是红的要么是黑的。  
+- 根结点是黑的。  
+- 每个叶结点（叶结点即指树尾端NIL指针或NULL结点）都是黑的。
+- 如果一个结点是红的，那么它的两个儿子都是黑的。  
+- 对于任意结点而言，其到叶结点树尾端NIL指针的每条路径都包含相同数目的黑结点。
+
+![红黑树](/images/posts/knowledge/javaContainer/红黑树.png)
 
 #### put() 方法
 
@@ -937,11 +962,87 @@ ConCurrentHashMap 和 HashMap 的put()方法实现基本类似，所以主要讲
   1. 先通过key的 rehash值的高位 和 segments数组大小-1 相与得到在 segments中的位置
   2. 然后在通过 key的rehash值 和 table数组大小-1 相与得到在table中的位置
 
-- 没获取到 segment锁的线程，没有权力进行put操作，不是像HashTable一样去挂起等待，而是会去做一下put操作前的准备：
+- 没获取到 segment锁的线程，没有权力进行put操作，不是像Hashtable一样去挂起等待，而是会去做一下put操作前的准备：
 
   1. table[i] 的位置（你的值要 put 到哪个桶中）
   2. 通过首节点 first 遍历链表找有没有相同 key
   3. 在进行 1、2 的期间还不断自旋获取锁，超过 64 次线程挂起！
+
+1. 定位到 segment
+
+    ``` java
+    @SuppressWarnings("unchecked")
+    public V put(K key, V value) {
+        Segment<K,V> s;
+        if (value == null) // 不允许value为空
+            throw new NullPointerException();
+        int hash = hash(key); // 计算hash值
+        int j = (hash >>> segmentShift) & segmentMask; // 定位属于哪个segment中
+        if ((s = (Segment<K,V>)UNSAFE.getObject          // nonvolatile; recheck
+             (segments, (j << SSHIFT) + SBASE)) == null) //  in ensureSegment
+            s = ensureSegment(j);
+        return s.put(key, hash, value, false); // 将键值对保存到对应的segment中
+    }
+    ```
+
+    segmentShift = 32 - sshift，默认值情况下segmentMask = 15。
+
+2. segment 里 put 值
+
+    ``` java
+    final V put(K key, int hash, V value, boolean onlyIfAbsent) {
+        // 第一步就是加锁，加锁没成功作准备操作
+        HashEntry<K,V> node = tryLock() ? null :
+                scanAndLockForPut(key, hash, value);
+        V oldValue;
+        try {
+            // 每一个segment对应一个HashEntry数组
+            HashEntry<K,V>[] tab = table;
+            // 计算对应HashEntry数组的下标
+
+            // 每个segment中数组的长度都是2的N次方，所以这里经过运算之后，取的是hash的低几位数据
+            int index = (tab.length - 1) & hash;
+            // 定位到HashEntry数组中的某个结点（对应链表的表头结点）
+            HashEntry<K,V> first = entryAt(tab, index);
+            // 遍历链表
+            for (HashEntry<K,V> e = first;;) {
+                if (e != null) { // 如果链表不为空
+                    K k;
+                    if ((k = e.key) == key ||
+                        (e.hash == hash && key.equals(k))) {
+                        oldValue = e.value;
+                        if (!onlyIfAbsent) {
+                            e.value = value;
+                            ++modCount;
+                        }
+                        break;
+                    }
+                    e = e.next;
+                }
+                else { // 如果链表为空（表头为空）
+                    if (node != null)
+                        // 将新节点插入链表作为表头
+                        node.setNext(first);
+                    else
+                        // 根据key value 创建结点并插入链表
+                        node = new HashEntry<K,V>(hash, key, value, first);
+                    int c = count + 1;
+                    // 判断元素个数是否超过了阈值或者segment中数组的长度超过了MAXIMUM_CAPACITY，如果满足条件则rehash扩容！
+                    if (c > threshold && tab.length < MAXIMUM_CAPACITY)
+                        rehash(node);
+                    else // 不需要扩容时，将node放到数组（HashEntry[]）中对应的位置
+                        setEntryAt(tab, index, node);
+                    ++modCount;
+                    count = c;
+                    oldValue = null;
+                    break;
+                }
+            }
+        } finally {
+            unlock(); // 解锁
+        }
+        return oldValue; // 返回旧value值
+    ```
 
 **JDK1.8中的实现：**
 
@@ -950,6 +1051,72 @@ ConCurrentHashMap 和 HashMap 的put()方法实现基本类似，所以主要讲
   1. 如果为 null ，通过 CAS 的方式把 value put进去
   2. 如果非null ，并且 first.hash == -1 ，说明其他线程在扩容，参与一起扩容
   3. 如果非null ，并且 first.hash != -1 ，Synchronized锁住 first节点，判断是链表还是红黑树，遍历插入。
+
+``` java
+final V putVal(K key, V value, boolean onlyIfAbsent) {
+        if (key == null || value == null) throw new NullPointerException();
+        int hash = spread(key.hashCode());
+        int binCount = 0;
+        for (Node<K,V>[] tab = table;;) {
+            Node<K,V> f; int n, i, fh;
+            if (tab == null || (n = tab.length) == 0)
+                tab = initTable(); // 如果没有 table 初始化 table
+            else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) { 
+                if (casTabAt(tab, i, null, // 如果对应 Node 位置为空，通过 cas 方式插入一个 Node
+                             new Node<K,V>(hash, key, value, null)))
+                    break;                   // no lock when adding to empty bin
+            }
+            else if ((fh = f.hash) == MOVED)
+                tab = helpTransfer(tab, f);
+            else {
+                V oldVal = null;
+                synchronized (f) { //锁住头节点，插入
+                    if (tabAt(tab, i) == f) { //如果是链表
+                        if (fh >= 0) {
+                            binCount = 1;
+                            for (Node<K,V> e = f;; ++binCount) {
+                                K ek;
+                                if (e.hash == hash &&
+                                    ((ek = e.key) == key ||
+                                     (ek != null && key.equals(ek)))) {
+                                    oldVal = e.val;
+                                    if (!onlyIfAbsent)
+                                        e.val = value;
+                                    break;
+                                }
+                                Node<K,V> pred = e;
+                                if ((e = e.next) == null) {
+                                    pred.next = new Node<K,V>(hash, key,
+                                                              value, null);
+                                    break;
+                                }
+                            }
+                        }
+                        else if (f instanceof TreeBin) { //如果是树
+                            Node<K,V> p;
+                            binCount = 2;
+                            if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
+                                                           value)) != null) {
+                                oldVal = p.val;
+                                if (!onlyIfAbsent)
+                                    p.val = value;
+                            }
+                        }
+                    }
+                }
+                if (binCount != 0) {
+                    if (binCount >= TREEIFY_THRESHOLD)
+                        treeifyBin(tab, i);
+                    if (oldVal != null)
+                        return oldVal;
+                    break;
+                }
+            }
+        }
+        addCount(1L, binCount); //插入后增加计数
+        return null;
+    }
+```
 
 #### get() 方法
 
