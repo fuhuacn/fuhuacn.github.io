@@ -1258,6 +1258,293 @@ public class Box<T> {
 }
 ```
 
-# 十、注解
+# 十、代理
+
+## 代理模式介绍
+
+代理模式是一种设计模式，提供了对目标对象额外的访问方式，即**通过代理对象访问目标对象，这样可以在不修改原目标对象的前提下，提供额外的功能操作，扩展目标对象的功能。**
+
+简言之，代理模式就是设置一个中间代理来控制访问原目标对象，以达到增强原对象的功能和简化访问方式。
+
+代理模式UML类图：
+
+![UML](/images/posts/knowledge/javaBasic/代理UML.png)
+
+## 静态代理
+
+这种代理方式需要**代理对象和目标对象实现一样的接口**。都写为静态的代码。
+
+优点：可以在不修改目标对象的前提下扩展目标对象的功能。
+
+缺点：
+
+1. 冗余。由于代理对象要实现与目标对象一致的接口，会产生过多的代理类。
+2. 不易维护。一旦接口增加方法，目标对象与代理对象都要进行修改。
+
+举例：保存用户功能（UserDao）的静态代理实现
+
+- 接口类：IUserDao
+  
+  ``` java
+  public interface IUserDao {
+      public void save();
+  }
+  ```
+
+- 目标对象：UserDao
+
+  ``` java
+  public class UserDao implements IUserDao{
+
+      @Override
+      public void save() {
+          System.out.println("保存数据");
+      }
+  }
+  ```
+
+- 静态代理对象：UserDapProxy 需要实现IUserDao接口！
+
+  ``` java
+  public class UserDaoProxy implements IUserDao{
+      // 实现相同对象的接口才能赋值，与装饰器类似
+      private IUserDao target;
+      public UserDaoProxy(IUserDao target) {
+          this.target = target;
+      }
+      
+      @Override
+      public void save() {
+          System.out.println("开启事务");//扩展了额外功能
+          target.save();
+          System.out.println("提交事务");
+      }
+  }
+  ```
+
+- 测试类
+
+  ``` java
+  import org.junit.Test;
+
+  public class StaticUserProxy {
+      @Test
+      public void testStaticProxy(){
+          //目标对象
+          IUserDao target = new UserDao();
+          //代理对象
+          UserDaoProxy proxy = new UserDaoProxy(target);
+          proxy.save();
+      }
+  }
+  ```
+
+## JDK 动态代理
+
+*使用 Proxy.newProxyInstance 生成接口，主要需要实现方法中的 InvocationHandler 接口。该接口需要实现 invoke 方法。*
+
+动态代理利用了JDK API，**动态地在内存中构建代理对象，从而实现对目标对象的代理功能。**动态代理又被称为 JDK 代理或接口代理。
+
+### 与静态代理区别
+
+静态代理与动态代理的区别主要在：
+
+- 静态代理在编译时就已经实现，编译完成后代理类是一个实际的 class 文件
+- 动态代理是在**运行时动态生成的**，即编译完成后没有实际的 class 文件，而是在运行时动态生成类字节码，并加载到 JVM 中
+
+**特点**：**动态代理对象不需要实现接口**，但是要求**目标对象必须实现接口**，否则不能使用动态代理。
+
+### 主要类
+
+JDK 中生成代理对象主要涉及的类有：
+
++ java.lang.reflect.Proxy，主要方法为
+
+  ``` java
+  static Object newProxyInstance(ClassLoader loader,  //指定当前目标对象使用类加载器
+   Class<?>[] interfaces,    //目标对象实现的接口的类型
+   InvocationHandler h      //事件处理器
+  ) 
+  //返回一个指定接口的代理类实例，该接口可以将方法调用指派到指定的调用处理程序。
+  ```
+
+  该方法会返回代理的类的接口
+
++ java.lang.reflect.InvocationHandler，主要方法为
+
+  ``` java
+  Object    invoke(Object proxy, Method method, Object[] args) // 在代理实例上处理方法调用并返回结果。
+  ```
+
+  该方法返回的是代理类方法的返回值。
+
+### 举例
+
+jdk 动态代理实现
+
++ 接口类： IUserDao
+
+  ``` java
+  public interface IUserDao {
+      public String find(String name);
+  }
+  ```
+
++ 目标对象：UserDao，需要实现接口
+
+  ``` java
+  public class UserDao implements IUserDao {
+      @Override
+      public String find(String name) {
+          System.out.println("程序运行中！");
+          return name;
+      }
+  }
+  ```
+
++ 动态代理对象，可通用的工厂类
+
+  ``` java
+  import java.lang.reflect.InvocationHandler;
+  import java.lang.reflect.Method;
+  import java.lang.reflect.Proxy;
+
+  public class ProxyFactory {
+      Object userDao;
+      public ProxyFactory(Object userDao){
+          this.userDao = userDao;
+      }
+      // 返回的是代理对象的接口
+      public Object getDaoProxy(){
+          return Proxy.newProxyInstance(userDao.getClass().getClassLoader(), userDao.getClass().getInterfaces(), new InvocationHandler() {
+              @Override
+              public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                  System.out.println("开启代理");
+
+                  // 执行目标对象方法
+                  Object returnValue = method.invoke(userDao, args);
+
+                  System.out.println("结束代理");
+                  return returnValue;
+              }
+          });
+      }
+  }
+  ```
+
++ 测试类
+
+  ``` java
+  public class Test {
+      public static void main(String[] args) {
+          ProxyFactory proxyFactory = new ProxyFactory(new UserDao());
+          IUserDao iUserDao = (IUserDao) proxyFactory.getDaoProxy();
+          System.out.println(iUserDao.find("程序返回值！"));
+      }
+  }
+  ```
+
+  输出为：
+
+  ``` java
+  开启代理
+  程序运行中！
+  结束代理
+  程序返回值！
+  ```
+
+## cglib 代理
+
+*主要实现 MethodInterceptor 中的 intercept 方法，返回的直接是代理类本身*
+
+cglib（Code Generation Library）是一个第三方代码生成类库，运行时在内存中动态生成一个子类对象从而实现对目标对象功能的扩展。
+
+### 特点：
+
+- JDK 的动态代理有一个限制，就是使用动态代理的对象必须实现一个或多个接口。**如果想代理没有实现接口的类，就可以使用 CGLIB 实现。**
+- CGLIB 是一个强大的高性能的**代码生成包，它可以在运行期扩展 Java 类与实现 Java 接口。**它广泛的被许多 AOP 的框架使用，例如 Spring AOP 和 dynaop，为他们提供方法的 interception（拦截）。
+- CGLIB 包的底层是通过使用一个小而快的字节码处理框架 ASM，来转换字节码并生成新的类。不鼓励直接使用 ASM，因为它需要你对 JVM 内部结构包括 class 文件的格式和指令集都很熟悉。
+
+### 与 jdk 动态代理的区别
+
+- 使用动态代理的对象必须实现一个或多个接口
+- 使用cglib代理的对象则**无需实现接口，达到代理类无侵入**。
+
+使用 cglib 需要引入 cglib 的 jar 包，如果你已经有 spring-core 的 jar 包，则无需引入，因为 spring 中包含了 cglib。
+
+### 举例
+
++ 目标对象，无需接口
+
+  ``` java
+  import proxy.jdk.IUserDao;
+
+  public class UserDao implements IUserDao {
+      @Override
+      public String find(String name) {
+          System.out.println("程序运行中！");
+          return name;
+      }
+  }
+  ```
+
++ 代理对象：ProxyFactory，可通用的工厂类
+
+  ``` java
+  import net.sf.cglib.proxy.Enhancer;
+  import net.sf.cglib.proxy.MethodInterceptor;
+  import net.sf.cglib.proxy.MethodProxy;
+
+  import java.lang.reflect.Method;
+
+  public class ProxyFactory implements MethodInterceptor {
+      Object o;
+      public ProxyFactory(Object o) {
+          this.o = o;
+      }
+
+      // 直接获取的是代理后的对象，不是接口了
+      public Object getInstance(){
+          Enhancer enhancer = new Enhancer();
+          enhancer.setSuperclass(o.getClass());
+          //Callback 可以理解成生成的代理类的方法被调用时执行的逻辑，即拦截器。我们这里拦截器就是 ProxyFactory，它具有此逻辑
+          enhancer.setCallback(this);
+          return enhancer.create();
+      }
+
+      @Override
+      public Object intercept(Object object, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+          System.out.println("开始代理");
+          // 这块的 o 一定是原始对象的 o，最开始写成了 object 导致一直在代理死循环
+          Object res = method.invoke(o,args);
+          System.out.println("结束代理");
+          return res;
+      }
+  }
+  ```
+
++ 测试
+
+  ``` java
+  public class Test {
+      public static void main(String[] args) {
+          UserDao userDao = new UserDao();
+          UserDao proxyDao = (UserDao)new ProxyFactory(userDao).getInstance();
+          System.out.println(proxyDao.find("程序返回值！"));
+
+      }
+  }
+  ```
+
+## 总结
+
+1. 静态代理实现较简单，只要代理对象对目标对象进行包装，即可实现增强功能，但静态代理只能为一个目标对象服务，如果目标对象过多，则会产生很多代理类。
+2. jdk 动态代理**需要目标对象实现业务接口**，代理类只需实现 InvocationHandler 接口。
+3. jdk 动态代理生成的类为 com.sun.proxy.$Proxy0，cglib代理生成的类为 proxy.cglib.UserDao$$EnhancerByCGLIB$$44247402。
+4. 静态代理在编译时产生 class 字节码文件，可以直接使用，效率高。
+5. jdk 动态代理必须实现 InvocationHandler 接口，通过反射代理方法，比较消耗系统性能，但可以减少代理类的数量，使用更灵活。
+6. cglib 代理无需实现接口，通过生成类字节码实现代理，比反射稍快，不存在性能问题，但 cglib 会继承目标对象，需要重写方法，所以目标对象不能为 final 类。
+
+# 十一、注解
 
 Java 注解是附加在代码中的一些元信息，用于一些工具在编译、运行时进行解析和使用，起到说明、配置的功能。注解不会也不能影响代码的实际逻辑，仅仅起到辅助性的作用。

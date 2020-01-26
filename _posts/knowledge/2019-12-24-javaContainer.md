@@ -612,7 +612,7 @@ public final int hashCode() {
 
 #### 4.2 取模
 
-令 x = 1<<4，即 x 为 2 的 4 次方，它具有以下性质：
+令 x = 1<<4（2 的 4 次方是 16），即 x 为 2 的 4 次方，它具有以下性质：
 
 ``` 
 x   : 00010000
@@ -638,6 +638,8 @@ y%x : 00000010
 我们知道，位运算的代价比求模运算小的多，因此在进行这种计算时用位运算的话能带来更高的性能。
 
 确定桶下标的最后一步是将 key 的 hash 值对桶个数取模：hash%capacity，如果能保证 capacity **为 2 的 n 次方**，那么就可以将这个操作转换为位运算。
+
+***这也就是为什么容量必须是 2 的 n 次方。***
 
 ``` java
 static int indexFor(int h, int length) {
@@ -846,7 +848,7 @@ static final class Segment<K,V> extends ReentrantLock implements Serializable {
 static final int DEFAULT_CONCURRENCY_LEVEL = 16;
 ```
 
-segment 数组的长度是由 concurrentLevel 计算来的， segment 数组的长度是 2 的 N 次方，所有默认 N 为 4。
+segment 数组的长度是由 concurrentLevel 计算来的， **segment 数组的长度是 2 的 N 次方**，所有默认 N 为 4。**所以 segment 的长度也必须是 2 的 N 次方。**
 
 这个 N 也就是 sshift，segmentShift = 32 - sshift;
 
