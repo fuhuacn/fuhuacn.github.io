@@ -1226,6 +1226,268 @@ Class 和 java.lang.reflect 一起对反射提供了支持，java.lang.reflect �
 - Method ：可以使用 invoke() 方法调用与 Method 对象关联的方法；
 - Constructor ：可以用 Constructor 的 newInstance() 创建新的对象。
 
+## 代码示例
+
+``` java
+package reflection.bean;
+
+/**
+ * @Author: fuhua
+ * @Date: 2019/9/2 4:27 下午
+ */
+public class Student {
+    public static void main(String[] args) {
+        System.out.println("我执行了！！！");
+    }
+    private String name="default";
+    public int score;
+
+    private Student(int score){
+        this.score = score;
+        System.out.println("调用了私有方法执行了。。。");
+    }
+
+    public Student(){
+        System.out.println("调用了公有、无参构造方法执行了。。。");
+    }
+
+    Student(String str){
+        System.out.println("(默认)的构造方法 s = " + str);
+    }
+
+    protected Student(boolean n){
+        System.out.println("受保护的构造方法 n = " + n);
+    }
+
+    public Student(String name, int score) {
+        this.name = name;
+        this.score = score;
+    }
+
+    private String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    private int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
+    }
+}
+```
+
+``` props
+className=reflection.bean.Student
+methodName=getName
+```
+
+### 三种 Class 的获取方式
+
+``` java
+package reflection.run;
+
+import reflection.bean.Student;
+
+/**
+ * @Author: fuhua
+ * @Date: 2019/9/2 4:31 下午
+ */
+public class Create3Class {
+    public static void main(String[] args) {
+        Student stu1 = new Student();
+        Class stuClass = stu1.getClass();
+        System.out.println(stuClass.getName());
+        Class stuClass2 = Student.class;
+        Class stuClass3 = null;
+        try {
+            stuClass3 = Class.forName("reflection.bean.Student");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        if (stuClass == stuClass2 && stuClass2 == stuClass3) {
+            System.out.println("True");
+        }
+    }
+}
+```
+
+### 构造器
+
+``` java
+package reflection.run;
+
+import reflection.bean.Student;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
+/**
+ * @Author: fuhua
+ * @Date: 2019/9/2 4:39 下午
+ */
+public class Constructors {
+    public static void main(String[] args) {
+        Class stuClass = Student.class;
+        System.out.println("**********************所有公有构造方法*********************************");
+        Constructor[] constructors = stuClass.getConstructors();
+        for (Constructor constructor:constructors){
+            System.out.println(constructor);
+        }
+
+        System.out.println("**********************所有构造方法*********************************");
+        constructors = stuClass.getDeclaredConstructors();
+        for (Constructor constructor:constructors){
+            System.out.println(constructor);
+        }
+
+        System.out.println("**********************带参数的*********************************");
+        Constructor con = null;
+        try {
+            con = stuClass.getDeclaredConstructor(String.class);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        System.out.println(con);
+
+        System.out.println("**********************调用私有构造方法*********************************");
+        constructors = stuClass.getDeclaredConstructors();
+        for (Constructor constructor:constructors){
+            if(constructor.getModifiers() == 2){
+                try {
+                    constructor.setAccessible(true);
+                    Object obj = constructor.newInstance(10);
+
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+    }
+}
+```
+
+### 反射方法
+
+``` java
+package reflection.run;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+/**
+ * @Author: fuhua
+ * @Date: 2019/9/2 7:53 下午
+ */
+public class CreateMethod {
+    public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        Class clazz = null;
+        try {
+            clazz = Class.forName("reflection.bean.Student");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        Method[] methods = clazz.getMethods();
+        for (Method method:methods){
+            System.out.println(method);
+        }
+
+
+        Constructor con = clazz.getDeclaredConstructor(int.class);
+        con.setAccessible(true);
+        Object stu = con.newInstance(1);
+
+
+        try {
+            Method getScore = clazz.getDeclaredMethod("getScore");
+            getScore.setAccessible(true);
+            System.out.println(getScore.invoke(stu));
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+
+        Method setName = clazz.getMethod("setName",String.class);
+        setName.invoke(stu,"fuhua");
+
+        Method getName = clazz.getDeclaredMethod("getName");
+        getName.setAccessible(true);
+        Object name = getName.invoke(stu);
+        System.out.println(name);
+
+        Method main = clazz.getMethod("main",String[].class);
+        main.invoke(null,(Object)new String[]{"a","b","c"});
+
+    }
+}
+```
+
+### 反射变量
+
+``` java
+package reflection.run;
+
+import reflection.bean.Student;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+
+/**
+ * @Author: fuhua
+ * @Date: 2019/9/2 8:36 下午
+ */
+public class CreateFields {
+    public static void main(String[] args) {
+        Class stu = Student.class;
+        Constructor constructor = null;
+        try {
+            constructor = stu.getConstructor();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        Object student = null;
+        try {
+            student = constructor.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        Field[] fields = stu.getFields();
+        for (Field field:fields){
+            System.out.println(field);
+        }
+        Field name = null;
+        try {
+            name = stu.getDeclaredField("name");
+            name.setAccessible(true);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+        try {
+            name.set(student,"fuhua");
+            System.out.println(name.get(student));
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
 **反射的优点：**
 
 - 可扩展性：应用程序可以利用全限定名创建可扩展对象的实例，来使用来自外部的用户自定义类。
@@ -1249,12 +1511,66 @@ Throwable 可以用来表示任何可以作为异常抛出的类，分为两种�
 
 # 九、范型
 
+范型可以在方法、类、静态方法中设置。**静态方法必须设置专门的范型。**
+
 ``` java
-public class Box<T> {
-    // T stands for "Type"
-    private T t;
-    public void set(T t) { this.t = t; }
-    public T get() { return t; }
+package generic;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * @Author: fuhua
+ * @Date: 2019/9/9 3:36 下午
+ */
+public class GenericClass<T> {
+    private List<T> key = new ArrayList<T>();
+
+    void add(T t){
+        key.add(t);
+    }
+
+    List<T> getKey(){
+        return key;
+    }
+
+    // 范型方法，可以用 <> 方式设置与范型类不同的字母
+    public <N> List<N> methodGeneric(N string){
+        List<N> res = new ArrayList<>();
+        res.add(string);
+        return res;
+    }
+
+    // 静态范型方法，必须设置范型，因为静态的属于 .class 的还没有对象
+    public static <S> void print(S s){
+        System.out.println(s);
+    }
+}
+```
+
+范型可以向下继承，例如下面的例子 GoodStudent 继承 Student。
+
+``` java
+Student stu1 = new Student("aaa",100);
+GoodStudent stu2 = new GoodStudent("bbb",95);
+GenericClass<Student> genericClass = new GenericClass<Student>(); //这个地方如果范型里是 GoodStudent 就会报错了
+genericClass.add(stu1);
+genericClass.add(stu2);
+```
+
+范型接口，同时在实现的类中也可以设定范型的继承要求。
+
+``` java
+public interface GenericInterface<T> {
+    public void print(T t);
+}
+
+public class GenericImplentation<T extends Student> implements GenericInterface<T> {
+
+    @Override
+    public void print(T t) {
+        System.out.println(t);
+    }
 }
 ```
 
