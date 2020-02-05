@@ -396,7 +396,7 @@ ICMP 是为了更有效地转发 IP 数据报和提高交付成功的机会。�
 
 ICMP 报文分为差错报告报文和询问报文。
 
-![ICMP 2](/images/posts/knowledge/computerNetwork/icmp2.jpeg)
+![ICMP 2](/images/posts/knowledge/computerNetwork/icmp2.png)
 
 ### Ping
 
