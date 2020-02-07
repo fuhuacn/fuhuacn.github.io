@@ -1511,7 +1511,31 @@ Throwable 可以用来表示任何可以作为异常抛出的类，分为两种�
 - 受检异常 ：需要用 try...catch... 语句捕获并进行处理，并且可以从异常中恢复；
 - 非受检异常 ：是程序运行时错误，例如除 0 会引发 Arithmetic Exception，此时程序崩溃并且无法恢复。
 
+下面代码中 ceshi() 抛出了异常并将异常扔给了上一层调用者也就是 main() 处理。main() 抛出异常给 JVM。
+
+``` java
+class Solution {
+    public static void main(String[] args) throws Exception{
+        Solution s = new Solution();
+        s.ceshi();
+    }
+    public void ceshi() throws Exception{
+        System.out.println(this);
+        throw new Exception("test");
+    }
+}
+```
+
+``` text
+Solution@7852e922
+Exception in thread "main" java.lang.Exception: test
+        at Solution.ceshi(Solution.java:15)
+        at Solution.main(Solution.java:11)
+```
+
 # 九、范型
+
+## <T>
 
 范型可以在方法、类、静态方法中设置。**静态方法必须设置专门的范型。**
 
@@ -1575,6 +1599,81 @@ public class GenericImplentation<T extends Student> implements GenericInterface<
     }
 }
 ```
+
+## <?>
+
+**声明 ? 的地方，里面的元素要把 ? extends/super T 当作一个整体。? 可以理解为可能的某一个。List<? extends Fruit> 指的是里面的元素是一个继承自 Fruit 的元素，但继承千变万化所以就不能加了。List<? super Fruit> 指得是里面元素是 Fruit 的父类，所以加 Fruit 或 Fruit 的子类还是那个父类的子类。里面还可以添加元素**
+
+### 上界通配符
+
+上届：用 extends 关键字声明，表示参数化的类型可能是所指定的类型，或者是此类型的子类。
+
+List<Number> list = ArrayList<Integer> 这样的语句是无法通过编译的，尽管 Integer 是 Number 的子类型。那么如果我们确实需要建立这种 “向上转型” 的关系怎么办呢？这就需要通配符来发挥作用了。
+
+利用 <? extends Fruit> 形式的通配符，可以实现泛型的向上转型：
+
+``` java
+public class GenericsAndCovariance {
+    public static void main(String[] args) {
+        // Wildcards allow covariance:
+        List<? extends Fruit> flist = new ArrayList<>();
+        // Compile Error: can’t add any type of object:
+        // flist.add(new Apple());
+        // flist.add(new Fruit());
+        // flist.add(new Object());
+        flist.add(null); // Legal but uninteresting
+        // We know that it returns at least Fruit:
+        Fruit f = flist.get(0);
+    }
+}
+```
+
+上面的例子中， flist 的类型是 List<? extends Fruit>，我们可以把它读作：一个类型的 List， 这个类型可以是继承了 Fruit 的某种类型。注意，这并不是说这个 List 可以持有 Fruit 的任意类型。通配符代表了一种特定的类型，它表示 “某种特定的类型，但是 flist 没有指定”。这样不太好理解，具体针对这个例子解释就是，flist 引用可以指向某个类型的 List，只要这个类型继承自 Fruit，可以是 Fruit 或者 Apple，比如例子中的 new ArrayList<Apple>，但是为了向上转型给 flist，flist 并不关心这个具体类型是什么。
+
+如上所述，通配符 List<? extends Fruit> 表示某种特定类型 ( Fruit 或者其子类 ) 的 List，但是并不关心这个实际的类型到底是什么，反正是 Fruit 的子类型，Fruit 是它的上边界。那么对这样的一个 List 我们能做什么呢？其实如果我们不知道这个 List 到底持有什么类型，怎么可能安全的添加一个对象呢？在上面的代码中，**向 flist 中添加任何对象，无论是 Apple 还是 Orange 甚至是 Fruit 对象，编译器都不允许，唯一可以添加的是 null。**所以如果做了泛型的向上转型 (List<? extends Fruit> flist = new ArrayList<Apple>())，**那么我们也就失去了向这个 List 添加任何对象的能力**，即使是 Object 也不行。
+
+另一方面，如果调用某个返回 Fruit 的方法，这是安全的。因为我们知道，在这个 List 中，**不管它实际的类型到底是什么，但肯定能转型为 Fruit，所以编译器允许返回 Fruit。**
+
+了解了通配符的作用和限制后，好像任何接受参数的方法我们都不能调用了。其实倒也不是，看下面的例子：
+
+``` java
+public class CompilerIntelligence {
+    public static void main(String[] args) {
+        List<? extends Fruit> flist =
+        Arrays.asList(new Apple());
+        Apple a = (Apple)flist.get(0); // No warning
+        flist.contains(new Apple()); // Argument is ‘Object’
+        flist.indexOf(new Apple()); // Argument is ‘Object’
+        
+        //flist.add(new Apple());   无法编译
+
+    }
+}
+```
+
+### 下界通配符
+
+下界: 用 super 进行声明，表示参数化的类型可能是所指定的类型，或者是此类型的父类型，直至 Object
+
+通配符的另一个方向是　“超类型的通配符“: ? super T，T 是类型参数的下界。使用这种形式的通配符，我们就可以 ”传递对象” 了。还是用例子解释：
+
+``` java
+public class SuperTypeWildcards {
+    static void writeTo(List<? super Apple> apples) {
+        apples.add(new Apple());
+        apples.add(new BigApple());
+        // apples.add(new Fruit()); // Error
+    }
+}
+```
+
+writeTo 方法的参数 apples 的类型是 List<? super Apple>，它表示某种类型的 List，这个类型是 Apple 的基类型。也就是说，我们不知道实际类型是什么，但是这个类型肯定是 Apple 的父类型。因此，我们可以知道向这个 List 添加一个 Apple 或者其子类型的对象是安全的，这些对象都可以向上转型为 Apple。但是我们不知道加入 Fruit 对象是否安全，因为那样会使得这个 List 添加跟 Apple 无关的类型。
+
+### 无边界通配符
+
+还有一种通配符是无边界通配符，它的使用形式是一个单独的问号：List<?>，也就是没有任何限定。不做任何限制，跟不用类型参数的 List 有什么区别呢？
+
+List<?> list 表示 list 是持有某种特定类型的 List，但是不知道具体是哪种类型。那么我们可以向其中添加对象吗？当然不可以，因为并不知道实际是哪种类型，所以不能添加任何类型，这是不安全的。而单独的 List list ，也就是没有传入泛型参数，表示这个 list 持有的元素的类型是 Object，因此可以添加任何类型的对象，只不过编译器会有警告信息。
 
 # 十、代理
 

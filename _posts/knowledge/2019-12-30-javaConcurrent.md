@@ -435,7 +435,7 @@ public synchronized void func () {
 
 它和同步代码块一样。作用于 this 对象。
 
-### 同步中的类
+### 3. 同步中的类
 
 ``` java
 public void func() {

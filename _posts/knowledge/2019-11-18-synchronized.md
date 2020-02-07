@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Java Synchronized 原理
-categories: Java
+categories: Knowledge
 description: Java Synchronized 原理
 keywords: JAVA,Synchronized
 ---

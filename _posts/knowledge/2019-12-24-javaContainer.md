@@ -488,7 +488,7 @@ map.put("K3", "V3");
 - 插入 <K2,V2> 键值对，先计算 K2 的 hashCode 为 118，使用除留余数法得到所在的桶下标 118%16=6。
 - 插入 <K3,V3> 键值对，先计算 K3 的 hashCode 为 118，使用除留余数法得到所在的桶下标 118%16=6，插在 <K2,V2> 前面。
 
-应该注意到链表的插入是以**头插法**方式进行的，例如上面的 <K3,V3> 不是插在 <K2,V2> 后面，而是插入在链表头部。
+应该注意到链表的插入是以**头插法**方式进行的，例如上面的 <K3,V3> 不是插在 <K2,V2> 后面，而是插入在链表头部（在 jdk1.8 之前是插入头部的，在 jdk1.8 中是插入尾部的。）。
 
 查找需要分成两步进行：
 
@@ -834,7 +834,7 @@ static final class Segment<K,V> extends ReentrantLock implements Serializable {
 
     transient int count;
 
-    transient int modCount;
+    transient int modCount; //操作数量，因为像计数类的操作都是执行两次，也可能在这两次期间增了一个又减了一个，所以有此操作次数字段
 
     transient int threshold;
 
@@ -866,7 +866,7 @@ transient int count;
 
 在执行 size 操作时，需要遍历所有 Segment 然后把 count 累计起来。
 
-ConcurrentHashMap 在执行 size 操作时先尝试不加锁，如果连续两次不加锁操作得到的结果一致，那么可以认为这个结果是正确的。
+ConcurrentHashMap 在执行 size 操作时先尝试不加锁，如果连续两次不加锁操作得到的结果一致（算的是 modCount，对 Segment 数量发生变化的操作次数），那么可以认为这个结果是正确的。
 
 尝试次数使用 RETRIES_BEFORE_LOCK 定义，该值为 2，retries 初始值为 -1，因此尝试次数为 3。
 
