@@ -18,14 +18,14 @@ keywords: Java, 基础
 
 除了 boolean 单位为 bit，其他都是 byte。
 
-byte/8 bit  
-char/16 bit  
-short/16 bit  
-int/32 bit  
-float/32 bit  
-long/64 bit  
-double/64 bit  
-boolean/1 bit
+boolean/1 bit  
+byte/8 bit/1 byte  
+char/16 bit/2 byte  
+short/16 bit/2 byte  
+int/32 bit/4 byte  
+float/32 bit/4 byte  
+long/64 bit/8 byte  
+double/64 bit/8 byte
 
 boolean 只有两个值：true、false，可以使用 1 bit 来存储，但是具体大小没有明确规定。JVM 会在编译时期将 boolean 类型的数据转换为 int，使用 1 来表示 true，0 表示 false。JVM 支持 boolean 数组，但是是通过读写 byte 数组来实现的。
 
