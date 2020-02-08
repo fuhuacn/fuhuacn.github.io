@@ -845,7 +845,7 @@ run..run..run..run..run..run..run..run..run..run..end
 
 ## CyclicBarrier
 
-用来控制多个线程互相等待，只有当多个线程都到达时，这些线程才会继续执行。
+用来控制多个线程互相等待，只有当多个线程都到达时，这些线程才会继续执行。在这类方法中再考虑同步问题是没有意义的，因为需要每一个都 await 后才触发。而如果同步了，await 就会一直等待。
 
 和 CountdownLatch 相似，都是通过维护计数器来实现的。线程执行 await() 方法之后计数器会减 1，并进行等待，直到计数器为 0，所有调用 await() 方法而在等待的线程才能继续执行。
 
@@ -976,7 +976,7 @@ public class FutureTaskExample {
             }
         });
         otherThread.start();
-        System.out.println(futureTask.get());
+        System.out.println(futureTask.get()); // 这个方法在没执行完前会阻塞
     }
 }
 ```
@@ -1537,7 +1537,13 @@ public class ThreadLocalExample1 {
         Thread thread1 = new Thread(() -> {
             threadLocal1.set(1);
             threadLocal2.set(1);
+            try {
+                Thread.sleep(10);
+            } catch (Exception e) {
+                //TODO: handle exception
+            }
             threadLocal2.set(3);
+            System.out.println("thread1"+threadLocal2.get()); // 输出仍为 2，thread1 设置并不会生效
         });
         Thread thread2 = new Thread(() -> {
             threadLocal1.set(2);
@@ -1547,7 +1553,7 @@ public class ThreadLocalExample1 {
             }catch(Exception e){
 
             }
-            System.out.println(threadLocal2.get()); // 输出仍为 2，thread1 设置并不会生效
+            System.out.println("thread2"+threadLocal2.get()); // 输出仍为 2，thread1 设置并不会生效
         });
         thread1.start();
         thread2.start();
@@ -1560,6 +1566,8 @@ public class ThreadLocalExample1 {
 ``` text
 2
 ```
+
+可以看出每个 ThreadLocal 的赋值只对给他赋值的线程生效。
 
 它所对应的底层结构图为：
 
