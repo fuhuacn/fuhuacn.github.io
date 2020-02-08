@@ -479,6 +479,8 @@ public class Hosee{
 
 下面是 BlockingQueue 的 [JAVA 代码](https://liuhao163.github.io/JAVA中的管程/)：
 
+*真是的 LinkedBlockingQueue 用的是 Node 节点做链表，用了 putLock 和 takeLock 两把锁，一把从 tail 插入，一把从 head 取出，计数时用的 AtomicInteger，这样两把锁可以放取一体。*
+
 >关于 Condition 接口：  
 Condition是个接口，基本的方法就是await()和signal()方法；  
 Condition依赖于Lock接口，生成一个Condition的基本代码是lock.newCondition() 

@@ -117,3 +117,100 @@ keywords: 二分法,栈
         }
     }
     ```
+
+## 74. 搜索二维矩阵 中等
+
+* 题目描述
+
+    编写一个高效的算法来判断 m x n 矩阵中，是否存在一个目标值。该矩阵具有如下特性：
+
+    - 每行中的整数从左到右按升序排列。
+    - 每行的第一个整数大于前一行的最后一个整数。
+
+    **Example:**
+
+    > 输入:  
+    matrix = [  
+    [1,   3,  5,  7],  
+    [10, 11, 16, 20],  
+    [23, 30, 34, 50]  
+    ]  
+    target = 3  
+    输出: true
+
+* 解法
+
+    把二维矩形拉成一个长数组二分法。/ % 定位在二维数组中的位置。
+
+* 代码
+
+    ``` java
+    class Solution {
+        public boolean searchMatrix(int[][] matrix, int target) {
+            //把二维数组拉平就可以用二分法做
+            int y = matrix.length;
+            if(y==0) return false;
+            int x = matrix[0].length;
+            int left = 0;
+            int right = x*y-1;
+            while(left<=right){
+                int mid = left+(right-left)/2;
+                int value = matrix[mid/x][mid%x];
+                if(value==target) return true;
+                else if(value>target){
+                    right = mid-1;
+                }else{
+                    left = mid+1;
+                }
+            }
+            return false;
+        }
+    }
+    ```
+
+## 240 搜索二维矩阵 中
+
+* 题目描述
+
+  Write an efficient algorithm that searches for a value in an m x n matrix. This matrix has the following properties:
+
+  * Integers in each row are sorted in ascending from left to right.
+  * Integers in each column are sorted in ascending from top to bottom.
+
+    **Example:**  
+    > Consider the following matrix:
+    [  
+    [1,   4,  7, 11, 15],  
+    [2,   5,  8, 12, 19],  
+    [3,   6,  9, 16, 22],  
+    [10, 13, 14, 17, 24],  
+    [18, 21, 23, 26, 30]  
+    ]  
+    Given target = 5, return true.  
+    Given target = 20, return false.
+
+* 解法
+
+    抓住每个元素左边比他小，下边比他大的特点，从右上角（即头）开始遍历。
+
+* 代码
+
+    ``` java
+    class Solution {
+        //抓住每个元素左边比他小，下边比他大的特点，从右上角（即头）开始遍历
+        public boolean searchMatrix(int[][] matrix, int target) {
+            if(matrix.length==0) return false;
+            int columns = matrix[0].length;
+            int rows = matrix.length;
+            int i = 0;
+            int j = columns-1;
+            while(i<rows && j>-1){
+                int num = matrix[i][j];
+                if(num == target) return true;
+                else if(num<target) i++;
+                else if(num>target) j--;
+            }
+            return false;
+        }
+    }
+    ```
