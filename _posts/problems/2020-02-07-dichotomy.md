@@ -214,3 +214,90 @@ keywords: 二分法,栈
         }
     }
     ```
+
+## 153. 寻找旋转排序数组中的最小值 中等
+
+* 题目描述
+
+    假设按照升序排序的数组在预先未知的某个点上进行了旋转。
+
+    ( 例如，数组 [0,1,2,4,5,6,7] 可能变为 [4,5,6,7,0,1,2] )。
+
+    请找出其中最小的元素。
+
+    你可以假设数组中不存在重复元素。
+
+    **Example:**  
+    > 输入: [3,4,5,1,2]  
+    输出: 1
+
+* 解法
+
+    二分法，把中间数跟最左边数比，如果比最左边数小，就证明就是最小的数或者在最小数右边。反之在左边。
+
+* 代码
+
+    ``` java
+    class Solution {
+        public int findMin(int[] nums) {
+            if(nums.length==0) return 0;
+            if(nums[nums.length-1]>=nums[0]) return nums[0];
+            int start = 0;
+            int end = nums.length-1;
+            int left = nums[0];
+            while(start<end){
+                int mid = start+(end-start)/2;
+                if(nums[mid]>=left){ //比左边数大，证明一定不是最小值还在右边，如果等，证明就是最左边的数，由于最左边肯定不是最小的，所以还在右边
+                    start = mid+1;
+                }else{
+                    end = mid;
+                }
+            }
+            return nums[start];
+        }
+    }
+    ```
+
+## 162. 寻找峰值 中等
+
+* 题目描述
+
+    峰值元素是指其值大于左右相邻值的元素。
+
+    给定一个输入数组 nums，其中 nums[i] ≠ nums[i+1]，找到峰值元素并返回其索引。
+
+    数组可能包含多个峰值，在这种情况下，返回任何一个峰值所在位置即可。
+
+    你可以假设 nums[-1] = nums[n] = -∞。
+
+    **Example:**  
+    > 输入: nums = [1,2,1,3,5,6,4]  
+    输出: 1 或 5  
+    解释: 你的函数可以返回索引 1，其峰值元素为 2；  
+    或者返回索引 5， 其峰值元素为 6。
+
+* 解法
+
+    由于左右两边都取负无穷，所以可以用二分法。找到中间值，用中间值和中间值下一个比较，如果中间值大于中间值下一个，说明左边一定存在峰值。反之右边窜中峰值
+
+* 代码
+
+    ``` java
+    class Solution {
+        //由于左右两边都取负无穷，所以可以用二分法。找到中间值，用中间值和中间值下一个比较，如果中间值大于中间值下一个，说明左边一定存在峰值。反之右边窜中峰值
+        public int findPeakElement(int[] nums) {
+            if(nums.length==1) return 0;
+            int left=0;
+            int right=nums.length-1;
+            while(left<right){
+                int mid = left+(right-left)/2;
+                if(nums[mid]>nums[mid+1]){
+                    right = mid;
+                }else{
+                    left = mid+1;
+                }
+            }
+            return left;
+        }
+    }
+    ```
