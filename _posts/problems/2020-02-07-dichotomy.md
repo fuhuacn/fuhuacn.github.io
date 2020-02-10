@@ -301,3 +301,135 @@ keywords: 二分法,栈
         }
     }
     ```
+
+## 155. 最小栈 简单
+
+* 题目描述
+
+    设计一个支持 push，pop，top 操作，并能在常数时间内检索到最小元素的栈。
+
+    - push(x) -- 将元素 x 推入栈中。
+    - pop() -- 删除栈顶的元素。
+    - top() -- 获取栈顶元素。
+    - getMin() -- 检索栈中的最小元素。
+
+    **Example:**  
+    > 略
+
+* 解法
+
+    两个栈，一个放最小值的栈，两个栈大小同步。
+
+* 代码
+
+    ``` java
+    class MinStack {
+        
+        Stack<Integer> stack = new Stack<>();
+        Stack<Integer> minStack = new Stack<>();
+
+        /** initialize your data structure here. */
+        public MinStack() {
+            
+        }
+        
+        public void push(int x) {
+            stack.push(x);
+            if(minStack.size()==0 || x<minStack.peek()){
+                minStack.push(x);
+            }else{
+                minStack.push(minStack.peek());
+            }
+        }
+        
+        public void pop() {
+            if(stack.size()<=0) return;
+            stack.pop();
+            minStack.pop();
+        }
+        
+        public int top() {
+            return stack.peek();
+        }
+        
+        public int getMin() {
+            return minStack.peek();
+        }
+    }
+
+    /**
+    * Your MinStack object will be instantiated and called as such:
+    * MinStack obj = new MinStack();
+    * obj.push(x);
+    * obj.pop();
+    * int param_3 = obj.top();
+    * int param_4 = obj.getMin();
+    */
+    ```
+
+## 496. 下一个更大元素 I 简单
+
+* 题目描述
+
+    给定两个没有重复元素的数组 nums1 和 nums2 ，其中nums1 是 nums2 的子集。找到 nums1 中每个元素在 nums2 中的下一个比其大的值。
+
+    nums1 中数字 x 的下一个更大元素是指 x 在 nums2 中对应位置的右边的第一个比 x 大的元素。如果不存在，对应位置输出-1。
+
+    **Example:**  
+    > 输入: nums1 = [4,1,2],   nums2 = [1,3,4,2].  
+    输出: [-1,3,-1]  
+    解释:  
+    对于num1中的数字4，你无法在第二个数组中找到下一个更大的数字，因此输出 -1。  
+    对于num1中的数字1，第二个数组中数字1右边的下一个较大数字是 3。
+    对于num1中的数字2，第二个数组中没有下一个更大的数字，因此输出 -1。
+
+* 解法
+
+    一个栈，一个 map，栈遇到小的循环弹出，最后从 map 里取。
+
+* 代码
+
+    ``` java
+    class MinStack {
+        
+        Stack<Integer> stack = new Stack<>();
+        Stack<Integer> minStack = new Stack<>();
+
+        /** initialize your data structure here. */
+        public MinStack() {
+            
+        }
+        
+        public void push(int x) {
+            stack.push(x);
+            if(minStack.size()==0 || x<minStack.peek()){
+                minStack.push(x);
+            }else{
+                minStack.push(minStack.peek());
+            }
+        }
+        
+        public void pop() {
+            if(stack.size()<=0) return;
+            stack.pop();
+            minStack.pop();
+        }
+        
+        public int top() {
+            return stack.peek();
+        }
+        
+        public int getMin() {
+            return minStack.peek();
+        }
+    }
+
+    /**
+    * Your MinStack object will be instantiated and called as such:
+    * MinStack obj = new MinStack();
+    * obj.push(x);
+    * obj.pop();
+    * int param_3 = obj.top();
+    * int param_4 = obj.getMin();
+    */
+    ```
