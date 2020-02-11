@@ -461,3 +461,50 @@ keywords: 二分法,栈
         }
     }
     ```
+
+## 84. 柱状图中最大的矩形 困难
+
+* 题目描述
+
+    给定 n 个非负整数，用来表示柱状图中各个柱子的高度。每个柱子彼此相邻，且宽度为 1 。
+
+    求在该柱状图中，能够勾勒出来的矩形的最大面积。
+
+    **Example:**  
+    > 略
+
+* 解法
+
+    链表存地址，对应的数字从小到大，因为面积是取短边。当新的数字大于栈顶，直接加进去，当新的数字小于栈顶，依次将数字弹出栈，每弹一次计算一次最大面积，直到遇到比他小的，最后不要忘记在比较一轮。
+
+* 代码
+
+    ``` java
+    class Solution {
+        public int largestRectangleArea(int[] heights) {
+            //链表存地址，对应的数字从小到大，因为面积是取短边。
+            //当新的数字大于栈顶，直接加进去
+            //当新的数字小于栈顶，依次将数字弹出栈，每弹一次计算一次最大面积，直到遇到比他小的
+            //最后不要忘记在比较一轮
+            Stack<Integer> stack = new Stack<>();
+            int area = 0;
+            for(int i=0;i<heights.length;i++){
+                while(!stack.isEmpty()&&heights[i]<=heights[stack.peek()]){ //这块小于还是小于等于不重要
+                    int heightIndex = stack.pop();
+                    int height = heights[heightIndex];
+                    int beginIndex = stack.size()==0?-1:stack.peek();//-1指的是开头
+                    area = Math.max(area,height*(i-beginIndex-1));//是不含beginIndex那个位置的，是从i位置到beginIndex的长度，这段长度中都是以此时height为高，因为中间的数一定比height高，都被弹出去了
+                }
+                stack.push(i);
+            }
+            while(!stack.isEmpty()){ 
+                int heightIndex = stack.pop();
+                int height = heights[heightIndex];
+                int beginIndex = stack.size()==0?-1:stack.peek();
+                area = Math.max(area,height*(heights.length-beginIndex-1));
+            }
+            return area;
+        }
+    }
+    ```
+
