@@ -791,6 +791,8 @@ static final int tableSizeFor(int cap) {
 
 - Hashtable 使用 synchronized 来进行同步。
 - HashMap 可以插入键为 null 的 Entry。
+- HashMap 把 Hashtable 的 contains 方法去掉了，改成 containsValue 和 containsKey。因为 contains 方法容易让人引起误解。
+- HashTable 继承自 Dictionary 类，而 HashMap 是 Java1.2 引进的 Map interface 的一个实现。
 - HashMap 的迭代器是 fail-fast 迭代器。
 - HashMap 不能保证随着时间的推移 Map 中的元素次序是不变的。
 
