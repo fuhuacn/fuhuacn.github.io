@@ -367,6 +367,56 @@ keywords: 二分法,栈
     */
     ```
 
+## 42. 接雨水 困难
+
+* 题目描述
+
+    给定 n 个非负整数表示每个宽度为 1 的柱子的高度图，计算按此排列的柱子，下雨之后能接多少雨水。
+
+    **Example:**  
+    > 输入: [0,1,0,2,1,0,1,3,2,1,2,1]  
+    输出: 6
+
+* 解法
+
+    从中间找到最高点。两边往中间推得出最大值。
+
+* 代码
+
+    ``` java
+    class Solution {
+        public int trap(int[] height) {
+            if(height.length<3) return 0;
+            int maxHeight = 0;
+            int maxPos = 0;
+            for(int i=0;i<height.length;i++){
+                if(height[i]>maxHeight){
+                    maxHeight = height[i];
+                    maxPos = i;
+                }
+            }
+            int res = 0;
+            int currentMax = height[0];
+            for(int i=1;i<maxPos;i++){
+                if(currentMax>height[i]){
+                    res+=currentMax-height[i];
+                }else{
+                    currentMax = height[i];
+                }
+            }
+            currentMax = height[height.length-1];
+            for(int i=height.length-2;i>maxPos;i--){
+                if(currentMax>height[i]){
+                    res+=currentMax-height[i];
+                }else{
+                    currentMax = height[i];
+                }
+            }
+            return res;
+        }
+    }
+    ```
+
 ## 496. 下一个更大元素 I 简单
 
 * 题目描述
@@ -390,46 +440,24 @@ keywords: 二分法,栈
 * 代码
 
     ``` java
-    class MinStack {
-        
-        Stack<Integer> stack = new Stack<>();
-        Stack<Integer> minStack = new Stack<>();
-
-        /** initialize your data structure here. */
-        public MinStack() {
-            
-        }
-        
-        public void push(int x) {
-            stack.push(x);
-            if(minStack.size()==0 || x<minStack.peek()){
-                minStack.push(x);
-            }else{
-                minStack.push(minStack.peek());
+    class Solution {
+        public int[] nextGreaterElement(int[] nums1, int[] nums2) {
+            Stack<Integer> stack = new Stack<>();
+            Map<Integer,Integer> map = new HashMap<>();
+            for(int i=0;i<nums2.length;i++){
+                while(stack.size()>0 && stack.peek()<nums2[i]){
+                    map.put(stack.pop(),nums2[i]);
+                }
+                stack.push(nums2[i]);
             }
-        }
-        
-        public void pop() {
-            if(stack.size()<=0) return;
-            stack.pop();
-            minStack.pop();
-        }
-        
-        public int top() {
-            return stack.peek();
-        }
-        
-        public int getMin() {
-            return minStack.peek();
+            while(stack.size()>0){
+                map.put(stack.pop(),-1);
+            }
+            int[] res = new int[nums1.length];
+            for(int i=0;i<nums1.length;i++){
+                res[i] = map.get(nums1[i]);
+            }
+            return res;
         }
     }
-
-    /**
-    * Your MinStack object will be instantiated and called as such:
-    * MinStack obj = new MinStack();
-    * obj.push(x);
-    * obj.pop();
-    * int param_3 = obj.top();
-    * int param_4 = obj.getMin();
-    */
     ```
