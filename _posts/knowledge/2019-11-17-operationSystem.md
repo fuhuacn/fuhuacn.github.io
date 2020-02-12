@@ -76,13 +76,15 @@ keywords: 操作系统
 
 系统调用就是操作系统提供的应用程序接口（Application Programming Interface，API），用户程序即可通过调用这些 API 获得操作系统的服务；
 
+![系统调用](/images/posts/knowledge/operationSystem/系统调用.png)
+
 例如，如果用户程序需要进行读磁盘内容的操作，在 C 程序代码中可使用如下的语句：
 
 ``` c
 result = read(fd, buffer, nbytes);
 ```
 
-> 相信你对"On Unix, Everything is a file"已经耳熟能详了，比如 /dev目录、 /proc目录等，你几乎可以通过操作文件的方式获取系统所有能够获取的 data。而和文件进行交互，就需要用到文件描述符（file descriptors，简称 fd，就是一个数字，在某个进程内唯一）。
+> fd：相信你对"On Unix, Everything is a file"已经耳熟能详了，比如 /dev目录、 /proc目录等，你几乎可以通过操作文件的方式获取系统所有能够获取的 data。而和文件进行交互，就需要用到文件描述符（file descriptors，简称 fd，就是一个数字，在某个进程内唯一）。
 
 该 read 函数是 C 语言提供的库函数，而这个库函数本身则是调用的操作系统的 read 系统调用。这里有两个 read：
 
