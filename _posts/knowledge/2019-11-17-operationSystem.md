@@ -82,6 +82,8 @@ keywords: 操作系统
 result = read(fd, buffer, nbytes);
 ```
 
+> 相信你对"On Unix, Everything is a file"已经耳熟能详了，比如 /dev目录、 /proc目录等，你几乎可以通过操作文件的方式获取系统所有能够获取的 data。而和文件进行交互，就需要用到文件描述符（file descriptors，简称 fd，就是一个数字，在某个进程内唯一）。
+
 该 read 函数是 C 语言提供的库函数，而这个库函数本身则是调用的操作系统的 read 系统调用。这里有两个 read：
 
 + 一个是 C 语言提供的 read 库函数；
@@ -93,12 +95,20 @@ Linux 的系统调用主要有以下这些：
 
 | Task | Commands |
 | :---: | --- |
-| 进程控制 | fork(); exit(); wait(); |
+| 进程控制 | fork(); exec(); exit(); wait(); sleep();|
 | 进程通信 | pipe(); shmget(); mmap(); |
 | 文件操作 | open(); read(); write(); |
 | 设备操作 | ioctl(); read(); write(); |
 | 信息维护 | getpid(); alarm(); sleep(); |
 | 安全 | chmod(); umask(); chown(); |
+
+### 进程创建
+
+一个进程都由另一个称之为父进程的进程启动，被父进程启动的进程叫做子进程。Linux 系统启动时候，它将运行一个名为 init 的进程，该进程是系统运行的第一个进程，它的进程号为 1，它负责管理其它进程，可以把它看做是操作系统进程管理器，它是其它所有进程的祖先进程。系统中的进程要么是由 init 进程启动，要么是由 init 进程启动的其他进程启动。
+
+“fork”用来产生一个新进程，这个进程默认会复制自身。
+
+“exec”则是“启动参数指定的程序，代替自身进程”。配合fork使用，就成了“当前进程启动另一个进程”。
 
 ## 大内核和微内核
 

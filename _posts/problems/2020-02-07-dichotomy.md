@@ -508,3 +508,48 @@ keywords: 二分法,栈
     }
     ```
 
+## 239. 滑动窗口最大值 困难
+
+* 题目描述
+
+    给定一个数组 nums，有一个大小为 k 的滑动窗口从数组的最左侧移动到数组的最右侧。你只可以看到在滑动窗口内的 k 个数字。滑动窗口每次只向右移动一位。
+
+    返回滑动窗口中的最大值。
+
+    **Example:**  
+    > 输入: nums = [1,3,-1,-3,5,3,6,7], 和 k = 3  
+    输出: [3,3,5,5,6,7] 
+
+* 解法
+
+    双向队列，队列的头总是放最大值。队列里放序号。这样当来了个新的数时，保证队列的头总是最大的就行。每次在判断一下头还在不在窗口里。
+
+* 代码
+
+    ``` java
+    class Solution {
+        public int[] maxSlidingWindow(int[] nums, int k) {
+            if(nums.length == 0) return new int[0];
+            int[] res = new int[nums.length-k+1];
+            //双端队列中，保证第一个数最大，从尾插，循环把尾小的数扔出去，每次拿队列最前面比较一下还在不在窗口内
+            LinkedList<Integer> list = new LinkedList<>();
+            for(int i=0;i<k-1;i++){
+                while(!list.isEmpty()&&nums[list.getLast()]<nums[i]){
+                    list.pollLast();
+                }
+                list.add(i);
+            }
+            for(int i=k-1;i<nums.length;i++){
+                while(!list.isEmpty()&&nums[list.getLast()]<nums[i]){
+                    list.pollLast();
+                }
+                list.add(i);
+                if(i-list.peek()>=k){
+                    list.removeFirst();
+                }
+                res[i-k+1] = nums[list.peek()];
+            }
+            return res;
+        }
+    }
+    ```
