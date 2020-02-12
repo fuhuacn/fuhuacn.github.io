@@ -1214,6 +1214,173 @@ public static void main(String[] args) {
 
 应该注意的是，返回值不同，其它都相同不算是重载（会直接报错）。
 
+### 分派
+
+*静态分派实现了重载，即根据参数的静态类型决定调用方法。动态分派实现重写，根据调用者的实际类型调用。*
+
+*静态分派在编译器就决定了，动态分派需要在运行期才知道是谁。*
+
+分派会解释多态性特征的一些最基本的体现，**如“重载”、“重写”在Java虚拟机中是如何实现的**，当然这里的实现不是语法上该怎么写，我们关心的是虚拟机**如何确定正确的目标方法**。
+
+#### 静态分派
+
+所有依赖**静态类型来定位方法执行版本的分派动作称为静态分派。**静态分派的典型应用是**方法重载（根据静态类型不同决定执行哪个方法）**。
+
+``` java
+Human man = new Man();
+```
+
+**如上代码，Human 被称为静态类型，Man 被称为实际类型。**
+
+``` java
+//实际类型变化
+Human man = new Man();
+man = new Woman();
+
+//静态类型变化
+StaticDispatch sr = new StaticDispatch();
+sr.sayHello((Human) man);
+sr.sayHello((Woman) man); //这一步强转后就是实际类型了
+```
+
+可以看到的静态类型和实际类型都会发生变化，但是有区别：静态类型的变化仅仅在使用时发生，变量本身的静态类型不会被改变，并且最终的静态类型是在**编译期可知的**，而实际类型变化的结果在**运行期才可确定**。
+
+``` java
+class Human {  
+}
+
+class Man extends Human {  
+}  
+
+class Woman extends Human {  
+}  
+
+public class StaticDispatch {  
+
+    public void sayHello(Human guy) {  
+        System.out.println("hello, guy!");  
+    }  
+
+    public void sayHello(Man guy){  
+        System.out.println("hello, gentleman!");  
+    }
+
+    public void sayHello(Woman guy){  
+        System.out.println("hello, lady!");  
+    }  
+
+    public static void main(String[] args){  
+        Human man = new Man();  
+        Human woman = new Woman();  
+        StaticDispatch sr = new StaticDispatch();  
+        sr.sayHello(man); // hello, guy!
+        sr.sayHello(woman); // hello, guy!
+        sr.sayHello((Man)man); // hello, gentleman!
+    }  
+}
+```
+
+如上代码与运行结果，在调用 sayHello() 方法时，方法的调用者都为 sr 的前提下，使用哪个重载版本，**完全取决于传入参数的数量和数据类型**。代码中刻意定义了两个静态类型相同、实际类型不同的变量，可见编译器（不是虚拟机，因为如果是根据静态类型做出的判断，那么**在编译期就确定了**）在重载时是通过参数的静态类型而不是实际类型作为判定依据的。并且静态类型是编译期可知的，所以在编译阶段，javac 编译器就根据参数的静态类型决定使用哪个重载版本。这就是静态分派最典型的应用。
+
+#### 动态分派
+
+``` java
+
+abstract class Human {
+    abstract void call();
+}
+ 
+class Father extends Human{
+    @Override
+    void call() {
+        System.out.println("I am the Father!");
+    }
+}
+ 
+class Mother extends Human{
+    @Override
+    void call() {
+        System.out.println("I am the Mother!");
+    }
+}
+ 
+public class DynamicDispatch {
+    public static void main(String[] args) {
+        Human father = new Father();
+        Human mother = new Mother();
+        father.call(); // I am the Father!
+        mother.call(); // I am the Mother!
+    }
+}
+```
+
+动态分派与多态性的另一个重要体现——**方法重写**有着很紧密的关系。
+
+程序执行过程的机器指令分析如下：
+
+![动态分派](/images/posts/knowledge/jvm/20190716175713838.png)
+
+各操作指令解析:
+
+- 0：在 java 堆中为变量 father 分配空间，并将地址压入操作数栈顶
+- 3：复制操作数栈顶值。并压入栈顶(此时操作栈上有两个连续相同的father对象地址)
+- 4：从操作栈顶弹出一个 this 的引用(即两个连续father对象地址中靠近栈顶的一个)，并调用实例化方法&lt;init&gt;:()v
+- 7：将栈顶的仅剩的一个 father 对象地址存入第二个本地变量表 slot(1) 中
+- 8~15：重复上面的操作,创建了 mother 对象并将其地址存入第三个本地变量表 slot(2) 中
+- 16：将第二个本地变量表 slot(1) 中引用类型数据 father 地址推送至操作栈顶
+- 17：调用虚方法，根据father对象地址查询其 call() 方法并执行
+- 20~21：重复上面的操作,根据mother对象地址查询其 call() 并执行
+- 24：结束方法
+
+总结：从上面的invokevirtual可以知道方法call()的符号引用转换是在运行时期完成的,所以可以说动态分派解释了重载
+
+#### 单分派与多分派
+
+先给出宗量的定义：**方法的接受者（亦即方法的调用者）与方法的参数统称为方法的宗量。**单分派是根据一个宗量对目标方法进行选择，多分派是根据多于一个宗量对目标方法进行选择。
+
+``` java
+class Eat {  
+}
+
+class Drink {  
+}  
+
+class Father {  
+    public void doSomething(Eat arg) {  
+        System.out.println("爸爸在吃饭");  
+    }  
+
+    public void doSomething(Drink arg) {  
+        System.out.println("爸爸在喝水");  
+    }  
+}  
+
+class Child extends Father {
+    public void doSomething(Eat arg) {  
+        System.out.println("儿子在吃饭");  
+    }  
+
+    public void doSomething(Drink arg) {  
+        System.out.println("儿子在喝水");  
+    }  
+}  
+
+public class SingleDoublePai {  
+    public static void main(String[] args) {  
+        Father father = new Father();  
+        Father child = new Child();  
+        father.doSomething(new Eat()); // 爸爸在吃饭
+        child.doSomething(new Drink()); // 儿子在喝水
+    }  
+}
+```
+
+我们首先来看编译阶段编译器的选择过程，即静态分派过程。这时候选择目标方法的依据有两点：一是方法的**接受者（即调用者）的静态类型**是 Father 还是 Child，二是**方法参数类型**是 Eat 还是 Drink。因为是根据两个宗量进行选择，所以 Java 语言的静态分派属于**多分派类型**。
+
+再来看运行阶段虚拟机的选择，即动态分派过程。由于编译期已经了确定了目标方法的参数类型（编译期根据**参数的静态类型进行静态分派**），因此唯一可以影响到虚拟机选择的因素只有此方法的**接受者的实际类型是 Father 还是 Child**。因为只有一个宗量作为选择依据，所以 Java 语言的动态分派属于单分派类型。
+
+根据以上论证，我们可以总结如下：目前的 Java 语言（JDK1.6）是一门**静态多分派（方法重载）、动态单分派（方法重写）**的语言。
+
 # 七、反射
 
 每个类都有一个 Class 对象，包含了与类有关的信息。当编译一个新类时，会产生一个同名的 .class 文件，该文件内容保存着 Class 对象。
