@@ -1401,6 +1401,14 @@ public V put(K key, V value) {
 
 synchronized 和 ReentrantLock。
 
+Synchronized 来说，它是 java 语言的关键字，是原生语法层面的互斥，需要 jvm 实现。而 ReentrantLock 它是 JDK 1.5 之后提供的 API 层面的互斥锁，需要 lock() 和 unlock() 方法配合 try/finally 语句块来完成。
+
+使用 synchronized。如果 Thread1 不释放，Thread2 将一直等待，不能被中断。synchronized 也可以说是 Java 提供的原子性内置锁机制。内部锁扮演了互斥锁（mutual exclusion lock ，mutex）的角色，一个线程引用锁的时候，别的线程阻塞等待。使用 ReentrantLock。如果 Thread1 不释放，Thread2 等待了很长时间以后，可以中断等待，转而去做别的事情。
+
+synchronized 的锁是非公平锁，ReentrantLock 默认情况下也是非公平锁，但可以通过带布尔值的构造函数要求使用公平锁。
+
+ReentrantLock 可以同时绑定多个 Condition 对象，只需多次调用 newCondition 方法即可。synchronized中，锁对象的 wait() 和 notify() 或 notifyAll() 方法可以实现一个隐含的条件。但如果要和多于一个的条件关联的时候，就不得不额外添加一个锁。
+
 ## 非阻塞同步
 
 互斥同步最主要的问题就是线程阻塞和唤醒所带来的性能问题，因此这种同步也称为阻塞同步。
