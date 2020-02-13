@@ -661,6 +661,34 @@ B
 
 只能用在同步方法或者同步控制块中使用，否则会在运行时抛出 IllegalMonitorStateException。
 
+如果不加 synchronized 可能会出现以下情况：
+
+``` java
+class BlockingQueue {
+    Queue<String> buffer = new LinkedList<String>();
+ 
+    public void give(String data) {
+        buffer.add(data);
+        notify();                   // Since someone may be waiting in take!
+    }
+ 
+    public String take() throws InterruptedException {
+        while (buffer.isEmpty())    // 不能用if，因为为了防止虚假唤醒
+            wait();
+        return buffer.remove();
+    }
+}
+```
+
+这段代码可能会导致如下问题：
+
+1. 一个消费者调用 take，发现 buffer.isEmpty
+2. 在消费者调用 wait 之前，由于 cpu 的调度，消费者线程被挂起，生产者调用 give，然后 notify
+3. 然后消费者调用 wait（注意，由于错误的条件判断，导致 wait 调用在 notify 之后，这是关键）
+4. 如果很不幸的话，生产者产生了一条消息后就不再生产消息了，那么消费者就会一直挂起，无法消费，造成死锁。
+
+解决这个问题的方法就是：总是让give/notify和take/wait为原子操作。
+
 使用 wait() 挂起期间，线程会**释放锁**。这是因为，如果没有释放锁，那么其它线程就无法进入对象的同步方法或者同步控制块中，那么就无法执行 notify() 或者 notifyAll() 来唤醒挂起的线程，造成死锁。
 
 ``` java
