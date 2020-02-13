@@ -400,7 +400,19 @@ ICMP 报文分为差错报告报文和询问报文。
 
 ![ICMP 2](/images/posts/knowledge/computerNetwork/icmp2.png)
 
+ICMP大概分为两类报文： 一类是通知出错原因；一类是用于诊断查询。
+
+类型及含义如下：
+
+![ICMP](/images/posts/knowledge/computerNetwork/icmp类型.png)
+
 ### Ping
+
+我们用的 ping 操作中就包括了相应请求（类型字段值为 8）和应答（类型字段值为 0）ICMP 报文。 
+
+过程： 
+
+一台主机向一个节点发送一个类型字段值为 8 的 ICMP 报文，如果途中没有异常（如果没有被路由丢弃，目标不回应 ICMP 或者传输失败），则目标返回类型字段值为 0 的 ICMP 报文，说明这台主机存在。
 
 Ping 是 ICMP 的一个重要应用，主要用来测试两台主机之间的连通性。
 
