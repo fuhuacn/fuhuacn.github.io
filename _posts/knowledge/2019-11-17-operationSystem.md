@@ -880,73 +880,53 @@ public class BlockQueue {
 
 + Semaphore信号量：当读的时候判断一次有没有在读的，如果有在读的（证明没有写的）无需获取信号量，否则获取一次信号量。写入的时候必须获取信号量。
 
-``` java
-class Queue3
-{
-	private Object data = null;// 共享数据，只能有一个线程能写该数据，但可以有多个线程同时读该数据。
-	private Semaphore wmutex = new Semaphore(1);
-	private Semaphore rmutex = new Semaphore(2);// 只有两个能同时读
-	private int count = 0;
+    ``` java
+    package readWriteLock;
 
-	public void get(){
-		try
-		{
-			rmutex.acquire();
-			if (count == 0)
-				wmutex.acquire();// 当第一读进程欲读数据库时，阻止写进程写
-			count++;
-			System.out.println(Thread.currentThread().getName()
-					+ " be ready to read data!");
-			try
-			{
-				Thread.sleep((long) (Math.random() * 1000));
-			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-			}
-			System.out.println(Thread.currentThread().getName()
-					+ "have read data :" + data);
-			count--;
-			if (count == 0)
-				wmutex.release();
-			rmutex.release();
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-	}
+    import java.util.concurrent.Semaphore;
+    import java.util.concurrent.atomic.AtomicInteger;
 
-	public void put(Object data){
-		try
-		{
-			wmutex.acquire();
-			System.out.println(Thread.currentThread().getName()
-					+ " be ready to write data!");
-			try
-			{
-				Thread.sleep((long) (Math.random() * 1000));
-			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-			}
-			this.data = data;
-			System.out.println(Thread.currentThread().getName()
-					+ " have write data: " + data);
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-		finally
-		{
-			wmutex.release();
-		}
-	}
-}
-```
+    public class ReadWriteLockDemo {
+        Semaphore wlock = new Semaphore(1);
+        AtomicInteger readCount = new AtomicInteger(0);
+
+        public class ReadLock{
+            public void lock(){
+                if(readCount.get()!=0){
+                    readCount.getAndIncrement();
+                    return;
+                }
+                try {
+                    wlock.acquire(1);
+                    readCount.getAndIncrement();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            public void unlock(){
+                readCount.getAndDecrement();
+                if(readCount.get()==0){
+                    wlock.release();
+                }
+            }
+        }
+
+        public class WriteLock{
+            public void lock(){
+                try {
+                    wlock.acquire(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            public void unlock(){
+                wlock.release();
+            }
+        }
+
+    }
+    ```
 
 ### 3. 哲学家就餐问题
 
