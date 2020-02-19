@@ -140,3 +140,6 @@ znode watch 机制也是 zk 的核心功能之一，是配置管理功能的基�
 - 数据更新原子性，一次数据更新要么成功，要么失败
 - 全局唯一数据视图，client 无论连接到哪个 server，数据视图都是一致的
 - 实时性，在一定事件范围内，client 能读到最新数据
+
+# [zookeeper 分布式锁](https://blog.csdn.net/crazymakercircle/article/details/85956246)
+

@@ -1673,6 +1673,8 @@ Linux 中的内存管理的“页”大小为 4 KB。把所有的空闲页分组
 
 ![段页式](/images/posts/knowledge/operationSystem/段页式.png)
 
+[一篇不错的文章](https://blog.csdn.net/wsq119/article/details/82110757)
+
 ## 分页与分段的比较
 
 + 对程序员的透明性：分页透明，但是分段需要程序员显式划分每个段。
