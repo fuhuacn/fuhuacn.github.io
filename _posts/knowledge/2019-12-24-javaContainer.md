@@ -1150,6 +1150,11 @@ final V putVal(K key, V value, boolean onlyIfAbsent) {
 
 跟HashMap的 resize() 没太大区别，都是在 put() 元素时去做的扩容，所以在1.7中的实现是获得了锁之后，在单线程中去做扩容（1.new个2倍数组 2.遍历old数组节点搬去新数组）。
 
+如何扩容
+
+- 扩容的时候首先会创建一个两倍于原容量的数组，然后将原数组里的元素进行再hash后插入到新的数组里
+- 为了高效 ConcurrentHashMap 不会对整个容器进行扩容，而只对某个 segment 进行扩容
+
 **JDK1.8中的实现：**
 
 jdk1.8的扩容支持并发迁移节点，从old数组的尾部开始，如果该桶被其他线程处理过了，就创建一个 ForwardingNode 放到该桶的首节点，hash值为 -1，其他线程判断hash值为-1后就知道该桶被处理过了。
