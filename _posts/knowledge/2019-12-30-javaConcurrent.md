@@ -871,6 +871,10 @@ before
 after
 ```
 
+### 公平锁和非公平锁实现
+
+[链接](https://www.jianshu.com/p/f584799f1c77)
+
 # 六、线程状态
 
 ![线程状态](/images/posts/knowledge/javaConcurrent/线程状态.jpeg)
