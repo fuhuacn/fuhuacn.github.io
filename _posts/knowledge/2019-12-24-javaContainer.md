@@ -47,6 +47,10 @@ keywords: Java, Collections
 - Hashtable：和 HashMap 类似，但它是线程安全的，这意味着同一时刻多个线程同时写入 Hashtable 不会导致数据不一致。它是遗留类，不应该去使用它，而是使用 ConcurrentHashMap 来支持线程安全，ConcurrentHashMap 的效率会更高，因为 ConcurrentHashMap 引入了分段锁。
 - LinkedHashMap：使用双向链表来维护元素的顺序，顺序为插入顺序或者最近最少使用（LRU）顺序。
 
+## 线程安全的集合
+
+![线程安全集合替代](/images/posts/knowledge/javaConcurrent/线程安全集合.png)
+
 # 二、容器设计模式
 
 ## 迭代器模式
@@ -804,7 +808,9 @@ static final int tableSizeFor(int cap) {
 
 ## ConcurrentHashMap
 
-[详细](https://www.jianshu.com/p/fadc5bc01e23)
+1.7：[详细](https://www.jianshu.com/p/fadc5bc01e23)
+
+1.8：[详细](https://blog.csdn.net/qq_41737716/article/details/90549847)
 
 以下先是对 java 1.7 中模式进行介绍：
 
