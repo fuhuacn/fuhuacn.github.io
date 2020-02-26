@@ -1165,14 +1165,14 @@ public class ETTest {
 
 上面的每一个步骤都对应一条汇编语句，可以认为这每一步操作都是原子的，什么情况会导致两个线程同时获取到锁？
 
-- 中断： 当线程A执行完第一步后，发生了中断，os调度线程B，线程B也来加锁并且加锁成功，此时又发生中断，OS调度线程A执行，从第二步开始，也加锁成功。
+- 中断： 当线程A执行完第一步后，发生了中断，os 调度线程B，线程B也来加锁并且加锁成功，此时又发生中断，OS 调度线程 A 执行，从第二步开始，也加锁成功。
 - 多核： 能不能让硬件做一种加锁的原子操作呢？大名鼎鼎的“test and set”指令就是做这个事情的，该指令将读取内存、判断和设置值作为一个原子操作。单核环境下，锁的操作肯定是原子性了，多核呢？貌似还是不行，因为多个核心他们的锁操作是没有干扰的，都能够同时执行“test and set”，还是会出现两个线程同时获取到锁的情况， 所以硬件提供了锁内存总线的机制，在锁内存总线的状态下执行“test and set”操作就可以保证一个只有一个核执行成功，也就保证了不会存在多线程获取到锁的情况。
 
 ### 硬件上怎么实现的
 
 前面提到，CPU 会通过对总线加锁的手段来解决多核同时获取锁的情况，它到时是怎么实现的呢？ 在 CPU 芯片上有一个 HLOCK Pin，可以通过发送指令来操作，将 #HLOCK Pin 电位拉低，并持续到这条指令执行完毕，从而将总线锁住，这样同一总线上的其他 CPU 就不能通过总线来访问内存了。最开始这些功能是用来测试 CPU 的，后来被操作系统实现而封装成各种功能：关键代码段，信号量等。
 
-在加锁的代码编译成汇编后，会有个lock指令前缀：
+在加锁的代码编译成汇编后，会有个 lock 指令前缀：
 
 > Causes the processor's LOCK# signal to be asserted during execution of the accompanying instruction (turns the instruction into an atomic instruction). In a multiprocessor environment, the LOCK# signal insures that the processor has exclusive use of any shared memory while the signal is asserted.
 
