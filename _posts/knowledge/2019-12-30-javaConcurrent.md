@@ -1769,6 +1769,103 @@ ThreadLocal 从理论上讲并不是用来解决多线程并发问题的，因�
 
 在一些场景 (尤其是使用线程池) 下，由于 ThreadLocal.ThreadLocalMap 的底层数据结构导致 ThreadLocal 有内存泄漏的情况，应该尽可能在每次使用 ThreadLocal 后手动调用 remove()，以避免出现 ThreadLocal 经典的内存泄漏甚至是造成自身业务混乱的风险。
 
+#### threadLocal 的内存泄漏
+
+每个 thread 中都存在一个 map, map 的类型是 ThreadLocal.ThreadLocalMap。Map 中的 key 为一个 threadlocal 实例。这个 Map 的确使用了弱引用,不过弱引用只是针对 key（threadLocal）。每个 key 都弱引用指向 threadlocal。当把 threadlocal 实例置为 null 以后,没有任何强引用指向 threadlocal 实例（因为那个 map 中的 key 是弱引用），所以 threadlocal 将会被 gc 回收。但是，我们的 value 却不能回收，因为存在一条从 current thread 连接过来的强引用（在 ThreadLocal.ThreadLocalMap 中）。只有当前 thread 结束以后，current thread 就不会存在栈中，强引用断开，Current Thread、Map、value 将全部被 GC 回收。**所以得出一个结论就是只要这个线程对象被 gc 回收，就不会出现内存泄露，但在 threadLocal 设为 null 和线程结束这段时间不会被回收的，就发生了我们认为的内存泄露。**其实这是一个对概念理解的不一致，也没什么好争论的。最要命的是线程对象不被回收的情况，这就发生了真正意义上的内存泄露。比如使用线程池的时候，线程结束是不会销毁的，会再次使用的就可能出现内存泄露 。（在 web 应用中，每次 http 请求都是一个线程，tomcat 容器配置使用线程池时会出现内存泄漏问题）
+
+下面代码在一个线程内建立了两个 ThreadLocal。
+
+``` java
+ThreadLocal<Integer> tl1 = new ThreadLocal<>();
+ThreadLocal<Integer> tl1 = new ThreadLocal<>();
+```
+
+对应到线程中（Thread 类）的 Map：
+
+``` java
+ThreadLocal.ThreadLocalMap threadLocals = null;
+```
+
+看一下 ThreadLocalMap 类，可以看到 ThreadLocal 是弱引用，也就是 Entry 的 key 可能会被回收掉。
+
+``` java
+static class ThreadLocalMap {
+
+        /**
+         * The entries in this hash map extend WeakReference, using
+         * its main ref field as the key (which is always a
+         * ThreadLocal object).  Note that null keys (i.e. entry.get()
+         * == null) mean that the key is no longer referenced, so the
+         * entry can be expunged from table.  Such entries are referred to
+         * as "stale entries" in the code that follows.
+         */
+        static class Entry extends WeakReference<ThreadLocal<?>> {
+            /** The value associated with this ThreadLocal. */
+            Object value;
+
+            Entry(ThreadLocal<?> k, Object v) {
+                super(k);
+                value = v;
+            }
+        }
+...
+```
+
+所以可以看见在 ThreadLocalMap 中有两个 get 方法，为了应对有可能 key 被回收（如果回收了 value 也会被扫描到一并回收），防止内存泄漏。
+
+``` java
+/**
+    * Get the entry associated with key.  This method
+    * itself handles only the fast path: a direct hit of existing
+    * key. It otherwise relays to getEntryAfterMiss.  This is
+    * designed to maximize performance for direct hits, in part
+    * by making this method readily inlinable.
+    *
+    * @param  key the thread local object
+    * @return the entry associated with key, or null if no such
+    */
+private Entry getEntry(ThreadLocal<?> key) {
+    int i = key.threadLocalHashCode & (table.length - 1);
+    Entry e = table[i];
+    if (e != null && e.get() == key)
+        return e;
+    else
+        return getEntryAfterMiss(key, i, e);
+}
+
+/**
+    * Version of getEntry method for use when key is not found in
+    * its direct hash slot.
+    *
+    * @param  key the thread local object
+    * @param  i the table index for key's hash code
+    * @param  e the entry at table[i]
+    * @return the entry associated with key, or null if no such
+    */
+private Entry getEntryAfterMiss(ThreadLocal<?> key, int i, Entry e) {
+    Entry[] tab = table;
+    int len = tab.length;
+
+    while (e != null) {
+        ThreadLocal<?> k = e.get();
+        if (k == key)
+            return e;
+        if (k == null)
+            expungeStaleEntry(i);// 这个方法会清楚所有 key 为 null，即 threadLocal 被回收了的。
+        else // 这里是典型的线性地址探测法
+            i = nextIndex(i, len);
+        e = tab[i];
+    }
+    return null;
+}
+```
+
+注意这里的 key 是 ThreadLocal，他被回收只有可能是在调用代码手动调用了 threadLocal = null。也就是这里的弱引用的作用是当 threadLocal 为 null 时，ThreadLocalMap 中可以被清除掉防止内存泄漏。
+
+**之前好奇 WeakReference 不是弱引用吗，key 有可能随时被回收啊。但要想到在你声明的 threadLocal 可是强引用。所以只有当声明的 threadLocal 设为 null 的时候，弱引用才能被回收。**
+
+可以看到线程中所有的 threadLocal 对应的值都在 Thread 类的 ThreadLocalMap 中。所以如果这里不是弱引用，有可能出现 threadLocal 设为 null 但 ThreadLocalMap 中还被引用所以不能回收导致内存泄漏的问题。所以这里要设成弱引用。
+
 ### 3. 可重入代码（Reentrant Code）
 
 这种代码也叫做纯代码（Pure Code），可以在代码执行的任何时刻中断它，转而去执行另外一段代码（包括递归调用它本身），而在控制权返回后，原来的程序不会出现任何错误。
