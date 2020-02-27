@@ -1866,6 +1866,8 @@ private Entry getEntryAfterMiss(ThreadLocal<?> key, int i, Entry e) {
 
 可以看到线程中所有的 threadLocal 对应的值都在 Thread 类的 ThreadLocalMap 中。所以如果这里不是弱引用，有可能出现 threadLocal 设为 null 但 ThreadLocalMap 中还被引用所以不能回收导致内存泄漏的问题。所以这里要设成弱引用。
 
+![threadLocal内存](/images/posts/knowledge/javaConcurrent/threadLocal内存泄漏.png)
+
 ### 3. 可重入代码（Reentrant Code）
 
 这种代码也叫做纯代码（Pure Code），可以在代码执行的任何时刻中断它，转而去执行另外一段代码（包括递归调用它本身），而在控制权返回后，原来的程序不会出现任何错误。
