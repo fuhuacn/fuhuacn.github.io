@@ -68,7 +68,7 @@ Spark 作为 topic1 的消费者，实时消费发送来的身份证列表进行
             })
     ```
 
-+ 同理对于身份证信息验证正常数据发送回 Kafka，不可能每次使用都建立一个 KafkaProducer 送回，而如果像上面 jdbc 每个分区建立一个 KafkaProducer 可能会出现两个分区在一台机器时，KafkaProducer 报错：KafkaConsumer is not safe for multi-threaded access。这时候就要使用一个巧方法。可以[参考](https://www.jianshu.com/p/7cada5beb199)）：
++ 同理对于身份证信息验证正常数据发送回 Kafka，不可能每次使用都建立一个 KafkaProducer 送回。
     
     将 KafkaProducer 包装成一个可序列化的 class，对 KafkaProducer 采用 lazy 处理。这样可以先将 KafkaProducer.class 分发至各 executor 中，当使用时创建 KafkaProducer 对象，每台机器一个 KafkaProducer。
 

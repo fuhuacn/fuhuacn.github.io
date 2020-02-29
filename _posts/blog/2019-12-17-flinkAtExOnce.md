@@ -8,6 +8,12 @@ keywords: kafka,flink
 
 由于 ETL 任务需要，也就是迁移过程中不能多一条或者少一条，必须要实现消费 Kafka 时的精准一次消费，网上找了很多资料，没有一个写的非常详细的，在这里分享一下整体的流程。
 
+# Exactly-once VS At-least-once
+
+算子做快照时，如果等所有输入端的 barrier 都到了才开始做快照，那么就可以保证算子的 exactly-once；如果为了降低延时而跳过对其，从而继续处理数据，那么等 barrier 都到齐后做快照就是 at-least-once 了，因为这次的快照掺杂了下一次快照的数据，当作业失败恢复的时候，这些数据会重复作用系统，就好像这些数据被消费了两遍。
+
+*注：对齐只会发生在算子的上端是 join 操作以及上游存在 partition 或者 shuffle 的情况，对于直连操作类似 map、flatMap、filter 等还是会保证 exactly-once 的语义。*
+
 # 原理
 
 原理这里就简述一下，详细的介绍可以参考[这里](http://www.54tianzhisheng.cn/2019/06/20/flink-kafka-Exactly-Once/)。
