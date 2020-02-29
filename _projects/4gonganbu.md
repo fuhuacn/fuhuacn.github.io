@@ -68,7 +68,7 @@ Spark 作为 topic1 的消费者，实时消费发送来的身份证列表进行
             })
     ```
 
-+ 同理对于身份证信息验证正常数据发送回 Kafka，不可能每次使用都建立一个 KafkaProducer 送回。
++ 同理对于身份证信息验证正常数据发送回 Kafka，不可能每次使用都建立一个 KafkaProducer 送回。可以[参考](https://www.jianshu.com/p/7cada5beb199)）。
     
     将 KafkaProducer 包装成一个可序列化的 class，对 KafkaProducer 采用 lazy 处理。这样可以先将 KafkaProducer.class 分发至各 executor 中，当使用时创建 KafkaProducer 对象，每台机器一个 KafkaProducer。
 
@@ -83,6 +83,8 @@ Spark 程序使用 yarn 集群方式提交。
 ## HIVE 存储组件
 
 这部分就是一个简单的 JAVA 程序，作为 topic 2 的消费者消费数据。这个程序的核心由三部分：
+
+> 不要出现 KafkaConsumer 多线程消费的情况：KafkaConsumer 多线程消费报错：KafkaConsumer is not safe for multi-threaded access。
 
 + 带有并发控制的写文件方法。该类会将字符串写入文件。
 
