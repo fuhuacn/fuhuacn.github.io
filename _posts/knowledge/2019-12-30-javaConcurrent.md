@@ -148,7 +148,7 @@ Executor 管理多个异步任务的执行，而无需程序员显式地管理�
 
 主要有三种 Executor：
 
-[关于线程池非常详细的介绍](https://juejin.im/post/5aeec0106fb9a07ab379574f)
+[关于线程池非常详细的介绍](http://www.ideabuffer.cn/2017/04/04/深入理解Java线程池：ThreadPoolExecutor/)
 
 - CachedThreadPool：CachedThreadPool 是通过 java.util.concurrent.Executors 创建的 ThreadPoolExecutor 实例。这个实例会根据需要，在线程可用时，重用之前构造好的池中线程。这个线程池在执行 大量短生命周期的异步任务时（many short-lived asynchronous task），可以显著提高程序性能。调用 execute时，可以重用之前已构造的可用线程，如果不存在可用线程，那么会重新创建一个新的线程并将其加入到线程池中。如果线程超过 60 秒还未被使用，就会被中止并从缓存中移除。因此，线程池在长时间空闲后不会消耗任何资源。一个任务创建一个线程；
 - FixedThreadPool：所有任务只能使用固定大小的线程；
