@@ -831,6 +831,8 @@ ConcurrentHashMap 和 HashMap 实现上类似，最主要的差别是 **Concurre
 
 Segment 继承自 ReentrantLock。所以 ConcurrentHashMap 在 J.U.C（java.util.concurrent）内，AQS 也是核心。
 
+在使用 ConcurrentHashMap 时，特别是需要考虑高并发情况下，需要谨慎设置 concurrencyLevel，因为一旦初始化 segment 数组的数量就不会改变，如果后续插入数据较多，且并发量较多，ConcurrentHashMap 提供的并发能力就相对有限了。
+
 ``` java
 final Segment<K,V>[] segments;
 ```
