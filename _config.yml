@@ -2,7 +2,7 @@
 #   Main Configs   #
 # ---------------- #
 baseurl:
-url: http://www.fuhuacn.top
+url: https://fuhuacn.github.io
 date_format: "ordinal"
 title: 付华的代码历程
 subtitle: "学过、做过也记录过"
